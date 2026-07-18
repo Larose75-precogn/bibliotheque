@@ -1,0 +1,167 @@
+<style>
+  #pc-account-trigger {
+    position: fixed; top: 14px; right: 14px; z-index: 9999;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #2b6e68; color: #fff; border: 2px solid transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    background-size: cover; background-position: center;
+  }
+  #pc-account-trigger.pc-gold { border-color: #d4af37; box-shadow: 0 0 0 2px #d4af37; }
+  #pc-account-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 9998;
+  }
+  #pc-account-panel {
+    position: fixed; top: 0; right: 0; height: 100%; width: 320px; max-width: 92vw;
+    background: #fff; z-index: 9999; box-shadow: -2px 0 12px rgba(0,0,0,0.2);
+    padding: 20px; overflow-y: auto; font-family: -apple-system, sans-serif; font-size: 14px; color: #20242a;
+    box-sizing: border-box;
+  }
+  #pc-account-panel h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7178; margin: 20px 0 8px; }
+  #pc-account-panel h3:first-of-type { margin-top: 0; }
+  #pc-account-panel input { width: 100%; box-sizing: border-box; padding: 6px 8px; margin-bottom: 6px; border: 1px solid #dedbd3; border-radius: 4px; font-size: 13px; }
+  #pc-account-panel button { padding: 7px 12px; border-radius: 4px; border: none; background: #2b6e68; color: #fff; font-size: 13px; cursor: pointer; }
+  #pc-account-panel button.pc-gold-btn { background: #b8860b; }
+  #pc-account-close { position: absolute; top: 14px; right: 14px; cursor: pointer; font-size: 18px; background: none; color: #6b7178; }
+  .pc-member-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+  .pc-member-row img { width: 22px; height: 22px; border-radius: 50%; background: #eee; }
+  .pc-plan-badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 12px; margin-bottom: 8px; }
+  .pc-plan-free { background: #e4eeec; color: #2b6e68; }
+  .pc-plan-gold { background: #fbf0d9; color: #8a6412; }
+  #pc-account-status { font-size: 12px; color: #6b7178; margin-top: 8px; }
+</style>
+
+<div id="pc-account-trigger" title="Mon compte">?</div>
+<div id="pc-account-overlay">
+  <div id="pc-account-panel">
+    <button id="pc-account-close">&times;</button>
+
+    <div id="pc-account-bootstrap">
+      <h3>Bienvenue</h3>
+      <p style="font-size:13px;color:#6b7178;">Premier passage ici — indique ton email pour créer ton compte Structory.</p>
+      <input id="pc-bootstrap-email" type="email" placeholder="ton@email.com" />
+      <button id="pc-bootstrap-save">Créer mon compte</button>
+    </div>
+
+    <div id="pc-account-content" style="display:none;">
+      <h3>Organisation</h3>
+      <input id="pc-org-name" placeholder="Nom de l'organisation" />
+      <input id="pc-org-logo" placeholder="URL du logo" />
+      <input id="pc-org-info" placeholder="Coordonnées (adresse, etc.)" />
+      <button id="pc-org-save">Enregistrer</button>
+
+      <h3>Utilisateur</h3>
+      <div id="pc-members"></div>
+
+      <h3>Cœur comptable</h3>
+      <div id="pc-plan-badge" class="pc-plan-badge pc-plan-free">Forfait gratuit — Free Party, Open Mind</div>
+      <div id="pc-partner-action"></div>
+      <div id="pc-account-status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var ORG_ID = "<?= orgId ?>";
+  var STORAGE_KEY = 'pc_account_uid_' + ORG_ID;
+  var myUid = localStorage.getItem(STORAGE_KEY);
+
+  var trigger = document.getElementById('pc-account-trigger');
+  var overlay = document.getElementById('pc-account-overlay');
+  var closeBtn = document.getElementById('pc-account-close');
+
+  trigger.addEventListener('click', function () {
+    overlay.style.display = 'block';
+    if (myUid) loadProfile();
+  });
+  closeBtn.addEventListener('click', function () { overlay.style.display = 'none'; });
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.style.display = 'none'; });
+
+  document.getElementById('pc-bootstrap-save').addEventListener('click', function () {
+    var email = document.getElementById('pc-bootstrap-email').value.trim();
+    if (!email || email.indexOf('@') === -1) { alert('Email invalide'); return; }
+    google.script.run.withSuccessHandler(function (res) {
+      if (!res.success) { alert('Erreur : ' + (res.errorCode || 'inconnue')); return; }
+      myUid = res.user.uid;
+      localStorage.setItem(STORAGE_KEY, myUid);
+      google.script.run.withSuccessHandler(function () { loadProfile(); })
+        .accountRegisterOrg(ORG_ID, ORG_ID, myUid);
+    }).accountUpsertUser(email, null);
+  });
+
+  function loadProfile() {
+    document.getElementById('pc-account-bootstrap').style.display = 'none';
+    document.getElementById('pc-account-content').style.display = 'block';
+    google.script.run.withSuccessHandler(renderProfile).accountGetOrgProfile(ORG_ID);
+  }
+
+  function renderProfile(res) {
+    if (!res.success || !res.org) return;
+    var org = res.org;
+
+    document.getElementById('pc-org-name').value = org.name || '';
+    document.getElementById('pc-org-logo').value = org.logo_url || '';
+    document.getElementById('pc-org-info').value = (org.info && org.info.adresse) || '';
+    if (org.logo_url) {
+      trigger.style.backgroundImage = "url('" + org.logo_url + "')";
+      trigger.textContent = '';
+    }
+
+    var membersHtml = '';
+    (org.members || []).forEach(function (m) {
+      membersHtml += '<div class="pc-member-row">' +
+        (m.photoUrl ? '<img src="' + m.photoUrl + '">' : '<span>👤</span>') +
+        '<span>' + m.email + (m.role === 'owner' ? ' (propriétaire)' : '') + '</span></div>';
+    });
+    document.getElementById('pc-members').innerHTML = membersHtml || '<em>Aucun membre.</em>';
+
+    var badge = document.getElementById('pc-plan-badge');
+    var action = document.getElementById('pc-partner-action');
+    var isGold = org.subscription && org.subscription.status === 'active';
+
+    if (isGold) {
+      badge.className = 'pc-plan-badge pc-plan-gold';
+      badge.textContent = '✨ Partenaire — Statut Gold';
+      trigger.classList.add('pc-gold');
+      action.innerHTML = '';
+    } else {
+      badge.className = 'pc-plan-badge pc-plan-free';
+      badge.textContent = 'Forfait gratuit — Free Party, Open Mind';
+      trigger.classList.remove('pc-gold');
+      action.innerHTML = '<button class="pc-gold-btn" id="pc-become-partner">Devenir partenaire — 1€/mois</button>';
+      var btn = document.getElementById('pc-become-partner');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          document.getElementById('pc-account-status').textContent = 'Ouverture du paiement…';
+          google.script.run.withSuccessHandler(function (checkoutRes) {
+            if (checkoutRes.success && checkoutRes.checkoutUrl) {
+              window.open(checkoutRes.checkoutUrl, '_blank');
+            } else {
+              document.getElementById('pc-account-status').textContent = 'Erreur lors de la création du paiement.';
+            }
+          }).accountSubscriptionCheckout(myUid, null, null);
+        });
+      }
+    }
+  }
+
+  document.getElementById('pc-org-save').addEventListener('click', function () {
+    if (!myUid) return;
+    var fields = {
+      name: document.getElementById('pc-org-name').value.trim(),
+      logoUrl: document.getElementById('pc-org-logo').value.trim(),
+      info: { adresse: document.getElementById('pc-org-info').value.trim() }
+    };
+    google.script.run.withSuccessHandler(function () {
+      document.getElementById('pc-account-status').textContent = 'Enregistré.';
+      loadProfile();
+    }).accountUpdateOrgProfile(ORG_ID, fields);
+  });
+
+  if (myUid) {
+    loadProfile();
+  }
+})();
+</script>
