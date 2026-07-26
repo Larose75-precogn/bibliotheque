@@ -127,7 +127,12 @@ function getStructoryContext(orgId) {
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  const orgContext = ledgerGetContext(orgId);
+  var orgContext = null;
+  try {
+    orgContext = ledgerGetContext(orgId);
+  } catch (e) {
+    // org sans contexte Structory configuré — on continue avec le contexte universel
+  }
   const context = PRECOGN_CONTEXT +
     (orgContext ? '\n\n# NIVEAU MODULE + ORGANISATION\n\n' + orgContext : '');
 
