@@ -80,3 +80,20 @@ function analyzorGetQueryKeywords() {
   cache.put(cacheKey, JSON.stringify(keywords), 6 * 60 * 60);
   return keywords;
 }
+
+/**
+ * Comptes patrimoine d'une organisation (Suivre Mes Comptes, ARCHITECTURE.md §1.1) — liste
+ * vide pour toute org qui n'en a pas (compta-copro, etc.) : sert de garde-fou déterministe à
+ * Communicator pour savoir s'il doit proposer la saisie de solde (jamais codé en dur par org).
+ *
+ * @param {string} orgId
+ * @returns {Object[]} [{id, title, contenu: {etablissement, titulaire, nom, nature, devise_origine}}, ...]
+ */
+function analyzorListComptes(orgId) {
+  try {
+    const result = _callAnalyzor("/api/org/" + orgId + "/comptes", null, "GET");
+    return result.comptes || [];
+  } catch (e) {
+    return [];
+  }
+}
