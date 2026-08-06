@@ -1,0 +1,758 @@
+<style>
+  #op-trigger {
+    position: fixed; top: 14px; right: 14px; z-index: 9999;
+    width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+    background: #17171c; border: 2px solid #2b2b33; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #op-trigger img { width: 100%; height: 100%; object-fit: cover; }
+  #op-trigger .op-q  { color: #8b8b93; font-size: 16px; font-weight: 700; font-family: Arial, sans-serif; }
+  #op-trigger .op-ok { color: #00FF66; font-size: 18px; font-family: Arial, sans-serif; }
+  #op-trigger .op-view { color: #60a5fa; font-size: 11px; }
+  /* Statut "Partenaire" (1€/mois, Stéphane 2026-08-06) : anneau bleu autour du cercle
+     d'identité existant, jamais un nouveau glyphe qui remplacerait ?/✓/● ci-dessus — les deux
+     se cumulent (ex. logo + anneau Partenaire). */
+  #op-trigger.op-partner { box-shadow: 0 0 0 3px #3b82f6, 0 0 10px rgba(59,130,246,0.55); }
+  #op-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9998;
+  }
+  #op-panel {
+    display: none; position: fixed; top: 0; right: 0; height: 100%; width: 360px; max-width: 92vw;
+    background: #0b0b0f; color: #f4f4f5; z-index: 9999; box-shadow: -2px 0 12px rgba(0,0,0,0.4);
+    font-family: Arial, sans-serif; box-sizing: border-box; overflow-y: auto;
+  }
+  #op-panel .op-close { position: absolute; top: 14px; right: 14px; cursor: pointer; font-size: 18px; color: #8b8b93; z-index: 1; }
+  #op-header { padding: 20px 44px 16px 20px; border-bottom: 1px solid #2b2b33; }
+  #op-header h3 { margin: 0 0 4px; font-size: 17px; font-weight: 700; }
+  #op-header .op-orgid { font-size: 11px; color: #8b8b93; font-family: monospace; margin-bottom: 8px; }
+  #op-byos-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #8b8b93; margin-bottom: 4px; display: none; }
+  #op-byos-link {
+    display: none; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 8px;
+    background: #0d1117; border: 1px solid #2b2b33; text-decoration: none;
+    color: #60a5fa; font-size: 12px; word-break: break-all; transition: border-color 0.15s;
+  }
+  #op-byos-link:hover { border-color: #60a5fa; }
+  .op-section { padding: 14px 20px; border-bottom: 1px solid #1e1e24; }
+  .op-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #f59e0b; margin-bottom: 10px; }
+  .op-member { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .op-avatar { width: 28px; height: 28px; border-radius: 50%; background: #2b2b33; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #f59e0b; flex-shrink: 0; }
+  .op-member-info { flex: 1; min-width: 0; }
+  .op-member-email { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .op-member-name  { font-size: 11px; color: #8b8b93; }
+  .op-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #2b2b33; color: #f59e0b; flex-shrink: 0; }
+  .op-add-btn { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 7px 12px; border-radius: 7px; border: 1px dashed #2b2b33; background: none; color: #8b8b93; font-size: 12px; cursor: pointer; width: 100%; text-align: left; transition: border-color 0.15s, color 0.15s; }
+  .op-add-btn:hover { border-color: #f59e0b; color: #f59e0b; }
+  #op-invite-form { margin-top: 10px; }
+  #op-invite-form input { width: 100%; box-sizing: border-box; padding: 7px 10px; background: #0b0b0f; border: 1px solid #2b2b33; border-radius: 7px; color: #f4f4f5; font-size: 12px; margin-bottom: 6px; }
+  #op-invite-form button { padding: 7px 14px; border-radius: 7px; border: none; background: #f59e0b; color: #0b0b0f; font-size: 12px; font-weight: 600; cursor: pointer; }
+  #op-invite-form button:disabled { opacity: 0.5; cursor: default; }
+  #op-invite-status { font-size: 11px; margin-top: 5px; }
+  .op-sub-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: #d1d5db; padding: 3px 0; }
+  .op-sub-row .op-sub-key { color: #8b8b93; }
+  .op-sub-status-active   { color: #4ade80; font-weight: 600; }
+  .op-sub-status-inactive { color: #f87171; font-weight: 600; }
+  #op-eb-form input, #op-eb-form textarea, #op-powens-form input { width: 100%; box-sizing: border-box; padding: 7px 10px; background: #0b0b0f; border: 1px solid #2b2b33; border-radius: 7px; color: #f4f4f5; font-size: 12px; margin-bottom: 6px; font-family: monospace; }
+  #op-eb-form textarea { resize: vertical; }
+  #op-eb-form button, #op-powens-form button { padding: 7px 14px; border-radius: 7px; border: none; background: #f59e0b; color: #0b0b0f; font-size: 12px; font-weight: 600; cursor: pointer; }
+  #op-eb-form button:disabled, #op-powens-form button:disabled { opacity: 0.5; cursor: default; }
+  #op-eb-status, #op-powens-status { font-size: 11px; margin-top: 5px; }
+  .op-connector-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 4px 0; }
+  .op-connector-configured { color: #4ade80; }
+  .op-guide { background: #0d1117; border: 1px solid #2b2b33; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+  .op-guide-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #60a5fa; margin-bottom: 6px; }
+  .op-guide ol { margin: 0; padding-left: 18px; }
+  .op-guide li { font-size: 11px; color: #d1d5db; line-height: 1.5; margin-bottom: 4px; }
+  .op-guide a { color: #60a5fa; }
+  .op-guide code { background: #17171c; padding: 1px 4px; border-radius: 3px; font-size: 10px; }
+  /* Assistant pas-à-pas (2026-08-04) — une étape à la fois, comme l'assistant Powens lui-même
+     (ronds numérotés + Précédent/Suivant), jamais une liste entière d'un coup. */
+  .op-wizard { background: #0d1117; border: 1px solid #2b2b33; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .op-wizard-dots { display: flex; gap: 5px; margin-bottom: 10px; }
+  .op-wizard-dot { flex: 1; height: 3px; border-radius: 2px; background: #2b2b33; }
+  .op-wizard-dot.done { background: #60a5fa; }
+  .op-wizard-dot.active { background: #f59e0b; }
+  .op-wizard-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #60a5fa; margin-bottom: 8px; }
+  .op-wizard-step { font-size: 12px; color: #d1d5db; line-height: 1.6; min-height: 60px; }
+  .op-wizard-step a { color: #60a5fa; }
+  .op-wizard-step code { background: #17171c; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+  .op-wizard-nav { display: flex; justify-content: space-between; margin-top: 12px; gap: 8px; }
+  .op-wizard-nav button {
+    padding: 6px 12px; border-radius: 7px; border: 1px solid #2b2b33; background: none;
+    color: #d1d5db; font-size: 11px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+  }
+  .op-wizard-nav button:hover:not(:disabled) { border-color: #f59e0b; color: #f59e0b; }
+  .op-wizard-nav button:disabled { opacity: 0.35; cursor: default; }
+  .op-wizard-nav button.op-wizard-next { background: #f59e0b; border-color: #f59e0b; color: #0b0b0f; font-weight: 600; }
+  .op-wizard-nav button.op-wizard-next:disabled { opacity: 0.35; }
+  .op-connector-unconfigured { color: #8b8b93; }
+  .op-actions { padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .op-btn { display: block; text-align: center; padding: 9px 14px; border-radius: 8px;
+    background: #17171c; border: 1px solid #2b2b33; color: #f4f4f5; text-decoration: none;
+    font-size: 13px; cursor: pointer; transition: border-color 0.15s; }
+  .op-btn:hover { border-color: #f59e0b; }
+  .op-btn.primary { background: #f59e0b; border-color: #f59e0b; color: #0b0b0f; font-weight: 600; }
+  #op-loading { padding: 32px 20px; color: #8b8b93; font-size: 13px; }
+  #op-unresolved { padding: 20px; }
+  #op-unresolved h3 { margin: 0 0 6px; font-size: 15px; }
+  #op-unresolved p  { font-size: 12px; color: #8b8b93; margin: 0 0 14px; line-height: 1.4; }
+  #op-resolved { display: none; }
+</style>
+
+<div id="op-trigger" title="Mon organisation"><span class="op-q">?</span></div>
+<div id="op-overlay"></div>
+<div id="op-panel">
+  <span class="op-close" id="op-close-btn">&times;</span>
+
+  <div id="op-loading" style="display:none;">Chargement&hellip;</div>
+
+  <div id="op-unresolved" style="display:none;">
+    <h3>Pas encore d'organisation</h3>
+    <p>Aucune organisation trouv&#233;e. Cr&#233;e-en une ou rejoins celle d'un coll&#232;gue.</p>
+    <div class="op-actions">
+      <a class="op-btn primary" id="op-create-link" href="#" target="_top">Cr&#233;er mon organisation</a>
+    </div>
+  </div>
+
+  <div id="op-resolved">
+    <!-- Retour de Stéphane, 2026-08-02 : "quand on clique sur organisation afficher juste le
+         nom de l'organisation et le user, quand on clique sur le nom de l'organisation alors
+         tu affiches [le reste]" — l'en-tête montre maintenant SEULEMENT le nom (cliquable) et
+         qui consulte, tout le reste (stockage, membres, connecteurs, renommer, logo) est
+         replié derrière ce clic, jamais tout affiché d'un coup. -->
+    <div id="op-header">
+      <h3 id="op-org-name" style="cursor:pointer;">&#8212;</h3>
+      <div class="op-orgid" id="op-viewer-line"></div>
+    </div>
+
+    <div id="op-expanded" style="display:none;">
+      <div class="op-section">
+        <div id="op-byos-label" style="display:none;">Dossier de donn&#233;es</div>
+        <a id="op-byos-link" href="#" target="_blank">
+          <span style="font-size:14px;">&#128193;</span>
+          <span id="op-byos-path"></span>
+        </a>
+      </div>
+
+      <div class="op-section" id="op-profile-section" style="display:none;">
+        <div class="op-section-title">Profil</div>
+        <label style="display:block;font-size:11px;color:#8b8b93;margin-bottom:4px;">Nom de l'organisation</label>
+        <input type="text" id="op-name-input" style="width:100%;box-sizing:border-box;padding:7px 10px;background:#0b0b0f;border:1px solid #2b2b33;border-radius:7px;color:#f4f4f5;font-size:12px;margin-bottom:6px;">
+        <button id="op-name-save-btn" style="padding:7px 14px;border-radius:7px;border:none;background:#f59e0b;color:#0b0b0f;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:6px;">Enregistrer</button>
+        <div id="op-name-status" style="font-size:11px;margin-bottom:10px;"></div>
+
+        <label style="display:block;font-size:11px;color:#8b8b93;margin-bottom:4px;">Logo</label>
+        <div id="op-logo-dropzone" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px dashed #2b2b33;border-radius:7px;cursor:pointer;">
+          <img id="op-logo-preview" style="display:none;width:28px;height:28px;border-radius:50%;object-fit:cover;">
+          <span style="font-size:12px;color:#8b8b93;">&#128193; Changer le logo&#8230;</span>
+        </div>
+        <input type="file" id="op-logo-file-input" accept="image/*" style="display:none;">
+        <div id="op-logo-status" style="font-size:11px;margin-top:4px;"></div>
+      </div>
+
+      <div id="op-members-section" class="op-section" style="display:none;">
+        <div class="op-section-title">Membres</div>
+        <div id="op-members-list"></div>
+        <button class="op-add-btn" id="op-add-member-btn">&#43; Ajouter un membre</button>
+        <div id="op-invite-form" style="display:none;">
+          <input type="text" id="op-invite-email" placeholder="email@example.com">
+          <button id="op-invite-submit-btn">Ajouter</button>
+          <div id="op-invite-status"></div>
+        </div>
+      </div>
+
+      <div id="op-sub-section" class="op-section" style="display:none;">
+        <div class="op-section-title">Abonnement</div>
+        <div id="op-sub-info"></div>
+        <div id="op-partner-info"></div>
+        <button id="op-partner-btn" class="op-btn primary" style="margin-top:8px; display:none;">Devenir Partenaire (1&#8364;/mois)</button>
+        <div id="op-partner-status" style="font-size:11px; margin-top:6px; color:#8b8b93;"></div>
+      </div>
+
+      <div id="op-connectors-section" class="op-section" style="display:none;">
+      <div class="op-section-title">Connecteurs</div>
+      <!-- Retour de Stéphane, 2026-07-29 : "quand je clique sur enable banking je peux
+           paramétrer" — cliquer sur la ligne du connector lui-même déplie son formulaire,
+           plus de bouton "+ Configurer" séparé en dessous (pattern répété pour chaque
+           connector ci-dessous, pas seulement Enable Banking). -->
+      <div class="op-connector-row" id="op-eb-toggle-btn" style="cursor:pointer;">
+        <span>Enable Banking</span>
+        <span id="op-eb-configured-badge" class="op-connector-unconfigured">non configur&#233;</span>
+      </div>
+      <div id="op-eb-form" style="display:none;">
+        <div class="op-guide">
+          <div class="op-guide-title">Comment r&#233;cup&#233;rer ces identifiants</div>
+          <ol>
+            <li>Cr&#233;e un compte sur <a href="https://enablebanking.com/sign-in/" target="_blank">enablebanking.com</a> (juste ton email, pas de mot de passe).</li>
+            <li>Va dans <a href="https://enablebanking.com/cp/applications" target="_blank">Applications</a> et cr&#233;e une nouvelle application.</li>
+            <li>Choisis <b>SANDBOX</b> pour tester (comptes factices) &#8212; ne coche "production" ci-dessous QUE si Enable Banking t'a explicitement donn&#233; un acc&#232;s production pour connecter de vraies banques.</li>
+            <li>Pour la cl&#233;, choisis l'option <i>"Generate in the browser&#8230; export private key"</i> &#8212; ça te donne d'un coup l'App&nbsp;ID ET la cl&#233; priv&#233;e &#224; coller ci-dessous.</li>
+          </ol>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#f4f4f5;margin-bottom:6px;">
+          <input type="checkbox" id="op-eb-production" style="width:auto;margin:0;">
+          Identifiants de production (vraie banque)
+        </label>
+        <input type="text" id="op-eb-appid" placeholder="App ID (ex. 6a1b2c3d-&#8230;)">
+        <textarea id="op-eb-privatekey" rows="4" placeholder="Cl&#233; priv&#233;e (commence par -----BEGIN...)"></textarea>
+        <button id="op-eb-submit-btn">Enregistrer</button>
+        <div id="op-eb-status"></div>
+      </div>
+
+      <div class="op-connector-row" id="op-powens-toggle-btn" style="cursor:pointer;margin-top:8px;">
+        <span>Powens</span>
+        <span id="op-powens-configured-badge" class="op-connector-unconfigured">non configur&#233;</span>
+      </div>
+      <div id="op-powens-form" style="display:none;">
+        <div class="op-wizard" id="op-powens-wizard">
+          <div class="op-wizard-dots" id="op-powens-wizard-dots">
+            <div class="op-wizard-dot" data-dot="1"></div>
+            <div class="op-wizard-dot" data-dot="2"></div>
+            <div class="op-wizard-dot" data-dot="3"></div>
+            <div class="op-wizard-dot" data-dot="4"></div>
+            <div class="op-wizard-dot" data-dot="5"></div>
+            <div class="op-wizard-dot" data-dot="6"></div>
+          </div>
+          <div class="op-wizard-label" id="op-powens-wizard-label">&#201;tape 1/6</div>
+
+          <div class="op-wizard-step" data-step="1">
+            Cr&#233;e un compte sur la <a href="https://console.budget-insight.com/auth/register" target="_blank">console Powens</a> (ex-Budget Insight) et renseigne les infos de ta soci&#233;t&#233; (une seule fois) &#8212; si tu as d&#233;j&#224; un compte, connecte-toi simplement.
+          </div>
+          <div class="op-wizard-step" data-step="2" style="display:none;">
+            Cr&#233;e un domaine : choisis un nom (ex. le nom de ton organisation), il devient automatiquement <code>&#8230;-sandbox.biapi.pro</code> &#8212; note ce nom, c'est ton <b>Domaine</b> plus bas (sans le <code>.biapi.pro</code>).
+          </div>
+          <div class="op-wizard-step" data-step="3" style="display:none;">
+            Dans le menu de gauche du domaine, va dans <b>&#171;&nbsp;Applications&nbsp;&#187;</b> &#8594; <b>&#171;&nbsp;Nouvelle application cliente&nbsp;&#187;</b>.
+          </div>
+          <div class="op-wizard-step" data-step="4" style="display:none;">
+            Nom&nbsp;: le nom de ton organisation. URIs de redirection&nbsp;: colle EXACTEMENT <code>https://structory.ai/</code> (avec le &#171;&nbsp;s&nbsp;&#187; et le / final, sinon la connexion &#233;chouera). Enregistre.
+          </div>
+          <div class="op-wizard-step" data-step="5" style="display:none;">
+            Le <b>Client ID</b> s'affiche directement&nbsp;; clique sur &#171;&nbsp;Afficher&nbsp;&#187; &#224; c&#244;t&#233; du <b>Client secret</b> pour le r&#233;v&#233;ler &#8212; copie les deux, tu vas les coller plus bas.
+          </div>
+          <div class="op-wizard-step" data-step="6" style="display:none;">
+            <b>Besoin de les retrouver plus tard ?</b> Console Powens &#8594; <b>Domaines</b> &#8594; ton domaine &#8594; <b>Applications</b> &#8594; clique sur le NOM de l'application que tu as cr&#233;&#233;e (&#233;tape&nbsp;4) &#8212; Client ID et bouton &#171;&nbsp;Afficher&nbsp;&#187; pour le Client secret r&#233;apparaissent en haut de cette page.
+          </div>
+
+          <div class="op-wizard-nav">
+            <button id="op-powens-wizard-prev" disabled>&#8592; Pr&#233;c&#233;dent</button>
+            <button id="op-powens-wizard-next" class="op-wizard-next">Suivant &#8594;</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#8b8b93;margin-bottom:6px;">
+          Utilis&#233;s UNE SEULE fois pour cr&#233;er un utilisateur Powens permanent isol&#233;
+          pour cette organisation &#8212; le client secret n'est jamais conserv&#233; ensuite.
+          Tu pourras ensuite lier une vraie banque avec tes propres identifiants bancaires,
+          jamais partag&#233;s avec Structory.
+        </div>
+        <input type="text" id="op-powens-domain" placeholder="Domaine (ex. monorg-sandbox)">
+        <input type="text" id="op-powens-clientid" placeholder="Client ID">
+        <input type="text" id="op-powens-clientsecret" placeholder="Client secret">
+        <button id="op-powens-submit-btn">Enregistrer</button>
+        <div id="op-powens-status"></div>
+      </div>
+      </div>
+
+      <div class="op-actions">
+        <a class="op-btn primary" id="op-manage-link" href="#" target="_blank" style="display:none;">G&#233;rer l'organisation &#8599;</a>
+        <a class="op-btn" id="op-create-link-2" href="#" target="_top">Cr&#233;er ma propre organisation &#8599;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var ORG_ID = <?!= JSON.stringify(orgId) ?>;
+  var ORG_ONBOARDING_URL = "https://script.google.com/macros/s/AKfycbw8hhBqSBl4elLaV4a3nVTRVFGp4mmwRSCuguk1U4Fi1U4aN4Em4qvnLxWbp9t7L_j-/exec";
+
+  var trigger  = document.getElementById("op-trigger");
+  var overlay  = document.getElementById("op-overlay");
+  var panel    = document.getElementById("op-panel");
+  var resolved = false;
+  var orgFolderId = null;
+  var isOwnerFlag = false;
+
+  function openPanel() {
+    overlay.style.display = "block";
+    panel.style.display   = "block";
+    if (!resolved) document.getElementById("op-loading").style.display = "block";
+  }
+  function closePanel() { overlay.style.display = "none"; panel.style.display = "none"; }
+  trigger.addEventListener("click", openPanel);
+  overlay.addEventListener("click", closePanel);
+  document.getElementById("op-close-btn").addEventListener("click", closePanel);
+
+  document.getElementById("op-create-link").href = ORG_ONBOARDING_URL + (ORG_ID && ORG_ID !== "demo" ? "?orgId=" + encodeURIComponent(ORG_ID) : "");
+  document.getElementById("op-manage-link").href  = ORG_ONBOARDING_URL + "?screen=manage&orgId=" + encodeURIComponent(ORG_ID || "");
+  // Toujours visible même quand l'org est déjà résolue (retour de Stéphane, 2026-08-02 : un
+  // visiteur de smcdemo doit pouvoir à tout moment créer SA PROPRE organisation, pas seulement
+  // depuis l'écran "aucune organisation trouvée") — mène au même point d'entrée self-service
+  // (CreateOrg.html, executeAs=USER_ACCESSING) que op-create-link.
+  document.getElementById("op-create-link-2").href = ORG_ONBOARDING_URL + (ORG_ID && ORG_ID !== "demo" ? "?orgId=" + encodeURIComponent(ORG_ID) : "");
+
+  document.getElementById("op-add-member-btn").addEventListener("click", function() {
+    document.getElementById("op-invite-form").style.display = "block";
+    this.style.display = "none";
+    document.getElementById("op-invite-email").focus();
+  });
+
+  document.getElementById("op-invite-submit-btn").addEventListener("click", function() {
+    var btn = this;
+    var email = (document.getElementById("op-invite-email").value || "").trim().toLowerCase();
+    var statusEl = document.getElementById("op-invite-status");
+    if (!email || email.indexOf("@") < 0) { statusEl.style.color = "#f87171"; statusEl.textContent = "Email invalide."; return; }
+    btn.disabled = true;
+    statusEl.style.color = "#8b8b93"; statusEl.textContent = "Recherche…";
+    google.script.run
+      .withFailureHandler(function() { btn.disabled = false; statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur réseau."; })
+      .withSuccessHandler(function(res) {
+        if (!res || !res.success || !res.uid) {
+          btn.disabled = false; statusEl.style.color = "#f87171"; statusEl.textContent = "Compte introuvable.";
+          return;
+        }
+        google.script.run
+          .withFailureHandler(function() { btn.disabled = false; statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur ajout."; })
+          .withSuccessHandler(function(res2) {
+            btn.disabled = false;
+            if (!res2 || !res2.success) { statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur ajout."; return; }
+            statusEl.style.color = "#4ade80"; statusEl.textContent = "✓ Membre ajouté.";
+            document.getElementById("op-invite-email").value = "";
+          })
+          .accountOrgMemberAdd(ORG_ID, res.uid, "member");
+      })
+      .accountUpsertUser(email, "fr");
+  });
+
+  if (!ORG_ID || ORG_ID === "demo") {
+    resolved = true;
+    document.getElementById("op-loading").style.display    = "none";
+    document.getElementById("op-unresolved").style.display = "block";
+    return;
+  }
+
+  google.script.run
+    .withFailureHandler(function () {
+      resolved = true;
+      document.getElementById("op-loading").style.display    = "none";
+      document.getElementById("op-unresolved").style.display = "block";
+    })
+    .withSuccessHandler(function (res) {
+      resolved = true;
+      document.getElementById("op-loading").style.display = "none";
+
+      if (!res || !res.success) {
+        document.getElementById("op-unresolved").style.display = "block";
+        return;
+      }
+
+      isOwnerFlag = !!res.isOwner;
+      if (res.logoUrl) {
+        trigger.innerHTML = '<img src="' + res.logoUrl + '">';
+        var logoPreview = document.getElementById("op-logo-preview");
+        logoPreview.src = res.logoUrl;
+        logoPreview.style.display = "block";
+      } else if (isOwnerFlag) {
+        trigger.innerHTML = '<span class="op-ok">&#10003;</span>';
+      } else {
+        // Ni logo ni propriétaire confirmé : la coche verte laisserait croire à une identité
+        // vérifiée qu'on n'a pas (retour de Stéphane, 2026-08-02) — état neutre "consultation"
+        // distinct, ni "?" (aucune org) ni "✓" (propriétaire confirmé). Simple point plein,
+        // pas d'emoji (retour de Stéphane, 2026-08-03 : "c'est moche").
+        trigger.innerHTML = '<span class="op-view">&#9679;</span>';
+      }
+      document.getElementById("op-org-name").textContent = res.name || ORG_ID;
+      // "le user" (retour de Stéphane) : qui consulte, affiché tout de suite sous le nom —
+      // res.viewerEmail est null pour tout visiteur de Navigator (executeAs=USER_DEPLOYING,
+      // noSessionFallback=true côté Bibliotheque.identityGetOrgProfile) : on ne PEUT PAS savoir
+      // qui visite réellement dans ce mode, donc on n'affiche rien plutôt qu'une fausse info
+      // (bug réel corrigé 2026-08-02 : affichait avant l'email du déployeur pour tout le monde).
+      if (res.viewerEmail) {
+        document.getElementById("op-viewer-line").textContent = "Connecté en tant que " + res.viewerEmail;
+      }
+      document.getElementById("op-resolved").style.display = "block";
+      document.getElementById("op-name-input").value = res.name || "";
+      document.getElementById("op-profile-section").style.display = "block";
+
+      if (res.folderId) {
+        orgFolderId = res.folderId;
+        // Le lien Drive brut (dossier de données) ne doit JAMAIS s'afficher à un visiteur qui
+        // n'est pas propriétaire réel de l'org — bug réel trouvé le 2026-08-02 en testant
+        // smcdemo en navigation privée : n'importe quel visiteur (y compris anonyme) voyait ce
+        // lien, qui pointe vers un vrai dossier Drive possédé par un vrai compte Google
+        // personnel. `res.isOwner` est toujours calculable même sans viewerEmail connu (renvoie
+        // simplement false pour un visiteur anonyme, voir identityGetOrgProfile) — jamais
+        // affiché tant que ce n'est pas explicitement vrai.
+        if (res.isOwner) {
+          var driveUrl = "https://drive.google.com/drive/folders/" + res.folderId;
+          var byosLink = document.getElementById("op-byos-link");
+          document.getElementById("op-byos-label").style.display = "block";
+          byosLink.href = driveUrl;
+          byosLink.style.display = "flex";
+          document.getElementById("op-byos-path").textContent = res.folderId;
+          // "Gérer l'organisation" permet de renommer/supprimer l'org — même raison que le
+          // lien Drive ci-dessus, jamais montré à un non-propriétaire.
+          document.getElementById("op-manage-link").style.display = "block";
+        }
+        document.getElementById("op-connectors-section").style.display = "block";
+        google.script.run
+          .withFailureHandler(function () {})
+          .withSuccessHandler(function (secretsRes) {
+            var names = (secretsRes && secretsRes.secretNames) || [];
+            var ebBadge = document.getElementById("op-eb-configured-badge");
+            if (names.indexOf("enablebanking_selfservice_credentials") >= 0) {
+              ebBadge.textContent = "configuré ✓ (production)";
+              ebBadge.className = "op-connector-configured";
+            } else if (names.indexOf("enablebanking_sandbox_credentials") >= 0) {
+              ebBadge.textContent = "configuré (sandbox uniquement)";
+              ebBadge.className = "op-connector-unconfigured";
+            }
+            if (names.indexOf("powens_credentials") >= 0) {
+              var powensBadge = document.getElementById("op-powens-configured-badge");
+              powensBadge.textContent = "configuré ✓";
+              powensBadge.className = "op-connector-configured";
+            }
+          })
+          .analyzorListSecrets(ORG_ID);
+      }
+
+      // Membres (emails réels) et Abonnement (facturation) ne doivent jamais s'afficher à un
+      // visiteur non-propriétaire — même bug/même correctif que le lien Drive ci-dessus (trouvé
+      // le 2026-08-02 : n'importe quel visiteur anonyme de smcdemo voyait le vrai email de
+      // Stéphane dans la liste des membres). L'appel Abonnement (accountGetOrgProfile) n'est
+      // maintenant déclenché QUE si isOwner est déjà confirmé ici — jamais en parallèle, pour ne
+      // jamais dépendre d'un ordre de résolution entre deux appels google.script.run distincts.
+      if (res.isOwner && res.members && res.members.length) {
+        document.getElementById("op-members-section").style.display = "block";
+        document.getElementById("op-members-list").innerHTML = res.members.map(function(m) {
+          var init = (m.name || m.email || "?").substring(0, 2).toUpperCase();
+          return '<div class="op-member">'
+            + '<div class="op-avatar">' + init + '</div>'
+            + '<div class="op-member-info">'
+            + '<div class="op-member-email">' + (m.email || "&#8212;") + '</div>'
+            + (m.name ? '<div class="op-member-name">' + m.name + '</div>' : "")
+            + "</div>"
+            + '<div class="op-badge">' + (m.role || "membre") + "</div>"
+            + "</div>";
+        }).join("");
+      }
+
+      if (res.isOwner) {
+        google.script.run
+          .withFailureHandler(function () {})
+          .withSuccessHandler(function (subRes) {
+            if (!subRes || !subRes.success || !subRes.org) return;
+            var o   = subRes.org;
+            var sub = o.subscription || {};
+            var lines = [];
+
+            var statusLabel = sub.status || null;
+            var statusClass = statusLabel === "active" ? "op-sub-status-active" : "op-sub-status-inactive";
+            var qty   = (typeof sub.quantity === "number") ? sub.quantity : null;
+            var price = qty !== null ? Math.max(0, qty - 2) : null;
+
+            if (statusLabel) lines.push('<div class="op-sub-row"><span class="op-sub-key">Statut</span><span class="' + statusClass + '">' + statusLabel + '</span></div>');
+            if (qty   !== null) lines.push('<div class="op-sub-row"><span class="op-sub-key">Si&#232;ges</span><span>' + qty + '</span></div>');
+            if (price !== null) lines.push('<div class="op-sub-row"><span class="op-sub-key">Montant</span><span>' + price + '&nbsp;&#8364;/mois</span></div>');
+
+            // Statut "Partenaire" (1€/mois, personnel — distinct de l'abonnement de sièges
+            // ci-dessus) : anneau bleu sur #op-trigger + ligne dédiée + bouton d'inscription
+            // tant qu'il n'est pas déjà actif (retour de Stéphane, 2026-08-06).
+            var partner = o.partner || {};
+            var partnerBtn = document.getElementById("op-partner-btn");
+            var partnerInfoEl = document.getElementById("op-partner-info");
+            if (partner.active) {
+              trigger.classList.add("op-partner");
+              partnerInfoEl.innerHTML = '<div class="op-sub-row"><span class="op-sub-key">Partenaire</span><span class="op-sub-status-active">actif &#10003;</span></div>';
+              partnerBtn.style.display = "none";
+            } else {
+              trigger.classList.remove("op-partner");
+              partnerInfoEl.innerHTML = "";
+              if (partner.payerUid) {
+                partnerBtn.style.display = "block";
+                partnerBtn.onclick = function () {
+                  partnerBtn.disabled = true;
+                  var partnerStatusEl = document.getElementById("op-partner-status");
+                  partnerStatusEl.textContent = "Ouverture du paiement…";
+                  google.script.run
+                    .withFailureHandler(function () {
+                      partnerBtn.disabled = false;
+                      partnerStatusEl.textContent = "Erreur réseau — réessaie.";
+                    })
+                    .withSuccessHandler(function (checkoutRes) {
+                      partnerBtn.disabled = false;
+                      if (!checkoutRes || !checkoutRes.success || !checkoutRes.checkoutUrl) {
+                        partnerStatusEl.textContent = "Erreur : " + ((checkoutRes && checkoutRes.errorCode) || "inconnue");
+                        return;
+                      }
+                      partnerStatusEl.textContent = "Page de paiement ouverte dans un nouvel onglet.";
+                      window.open(checkoutRes.checkoutUrl, "_blank");
+                    })
+                    .accountPartnerCheckout(partner.payerUid, "fr", null);
+                };
+              }
+            }
+
+            if (lines.length) {
+              document.getElementById("op-sub-section").style.display = "block";
+              document.getElementById("op-sub-info").innerHTML = lines.join("");
+            } else if (partner.payerUid) {
+              // Aucune info de sièges à afficher, mais le statut Partenaire reste pertinent :
+              // la section doit s'afficher quand même (sinon le bouton devient inatteignable).
+              document.getElementById("op-sub-section").style.display = "block";
+            }
+          })
+          .accountGetOrgProfile(ORG_ID);
+      }
+    })
+    .identityGetOrgProfile(ORG_ID);
+
+  // Clic sur la LIGNE du connector (pas un bouton séparé) déplie/replie son formulaire — la
+  // ligne elle-même (nom + badge) reste toujours visible, contrairement à l'ancien pattern
+  // "+ Configurer" qui disparaissait après le 1er clic (retour de Stéphane, 2026-07-29).
+  function _opToggleConnectorForm(rowId, formId, focusId) {
+    var form = document.getElementById(formId);
+    var opening = form.style.display !== "block";
+    form.style.display = opening ? "block" : "none";
+    if (opening) document.getElementById(focusId).focus();
+  }
+  document.getElementById("op-eb-toggle-btn").addEventListener("click", function() {
+    _opToggleConnectorForm("op-eb-toggle-btn", "op-eb-form", "op-eb-appid");
+  });
+  document.getElementById("op-powens-toggle-btn").addEventListener("click", function() {
+    _opToggleConnectorForm("op-powens-toggle-btn", "op-powens-form", "op-powens-domain");
+  });
+
+  // Assistant pas-à-pas Powens (2026-08-04, retour de Stéphane : "un accompagnement pas à pas,
+  // pas un gros pâté" — l'ancienne liste à 5 puces d'un coup remplacée par une vraie étape à la
+  // fois, comme l'assistant de la console Powens elle-même) — 6 étapes, la 6e ("où retrouver
+  // tes identifiants plus tard") faisait partie d'une note séparée avant, maintenant une vraie
+  // étape du parcours.
+  (function () {
+    var WIZARD_STEPS = 6;
+    var current = 1;
+    var dots  = document.querySelectorAll("#op-powens-wizard-dots .op-wizard-dot");
+    var label = document.getElementById("op-powens-wizard-label");
+    var prevBtn = document.getElementById("op-powens-wizard-prev");
+    var nextBtn = document.getElementById("op-powens-wizard-next");
+
+    function render() {
+      for (var i = 1; i <= WIZARD_STEPS; i++) {
+        var stepEl = document.querySelector('.op-wizard-step[data-step="' + i + '"]');
+        if (stepEl) stepEl.style.display = (i === current) ? "block" : "none";
+      }
+      dots.forEach(function (d) {
+        var n = parseInt(d.getAttribute("data-dot"), 10);
+        d.className = "op-wizard-dot" + (n < current ? " done" : (n === current ? " active" : ""));
+      });
+      label.textContent = "Étape " + current + "/" + WIZARD_STEPS;
+      prevBtn.disabled = (current === 1);
+      nextBtn.textContent = (current === WIZARD_STEPS) ? "✓ Terminé" : "Suivant →";
+      nextBtn.disabled = (current === WIZARD_STEPS);
+    }
+
+    prevBtn.addEventListener("click", function () { if (current > 1) { current--; render(); } });
+    nextBtn.addEventListener("click", function () { if (current < WIZARD_STEPS) { current++; render(); } });
+
+    render();
+  })();
+
+  document.getElementById("op-eb-submit-btn").addEventListener("click", function() {
+    var btn = this;
+    var appId = (document.getElementById("op-eb-appid").value || "").trim();
+    var privateKey = (document.getElementById("op-eb-privatekey").value || "").trim();
+    var statusEl = document.getElementById("op-eb-status");
+    if (!appId || !privateKey) {
+      statusEl.style.color = "#f87171"; statusEl.textContent = "App ID et clé privée requis.";
+      return;
+    }
+    if (!orgFolderId) {
+      statusEl.style.color = "#f87171"; statusEl.textContent = "Dossier de données introuvable, réessaie plus tard.";
+      return;
+    }
+    btn.disabled = true;
+    statusEl.style.color = "#8b8b93"; statusEl.textContent = "Enregistrement…";
+    var isProduction = document.getElementById("op-eb-production").checked;
+    var secretName = isProduction ? "enablebanking_selfservice_credentials" : "enablebanking_sandbox_credentials";
+    var value = JSON.stringify({ app_id: appId, private_key: privateKey });
+    google.script.run
+      .withFailureHandler(function() {
+        btn.disabled = false;
+        statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur réseau.";
+      })
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        if (!res || !res.success) {
+          statusEl.style.color = "#f87171";
+          statusEl.textContent = "Erreur : " + ((res && res.errorCode) || "inconnue");
+          return;
+        }
+        statusEl.style.color = "#4ade80"; statusEl.textContent = "✓ Enregistré et chiffré.";
+        document.getElementById("op-eb-privatekey").value = "";
+        var badge = document.getElementById("op-eb-configured-badge");
+        badge.textContent = isProduction ? "configuré ✓ (production)" : "configuré (sandbox uniquement)";
+        badge.className = isProduction ? "op-connector-configured" : "op-connector-unconfigured";
+      })
+      .identitySetOrgSecret(ORG_ID, orgFolderId, secretName, value);
+  });
+
+  // Bootstrap self-service Powens (2026-07-29) — modèle "chaque org a sa propre app Powens"
+  // (décision définitive 2026-08-02, après un aller-retour sur une app partagée finalement
+  // écartée : la vraie demande de Stéphane est un meilleur accompagnement dans ce guide, pas
+  // une app centrale qui retirerait au client la maîtrise de sa relation avec Powens).
+  // 2 étapes : (1) POST /auth/init côté Executor (jamais stocké là-bas, voir
+  // executorPowensBootstrap) crée l'utilisateur Powens permanent isolé de cette org, (2) le
+  // authToken renvoyé est persisté ici via identitySetOrgSecret, même chemin que Enable Banking.
+  document.getElementById("op-powens-submit-btn").addEventListener("click", function() {
+    var btn = this;
+    var domain = (document.getElementById("op-powens-domain").value || "").trim();
+    var clientId = (document.getElementById("op-powens-clientid").value || "").trim();
+    var clientSecret = (document.getElementById("op-powens-clientsecret").value || "").trim();
+    var statusEl = document.getElementById("op-powens-status");
+    if (!domain || !clientId || !clientSecret) {
+      statusEl.style.color = "#f87171"; statusEl.textContent = "Domaine, Client ID et Client secret requis.";
+      return;
+    }
+    if (!orgFolderId) {
+      statusEl.style.color = "#f87171"; statusEl.textContent = "Dossier de données introuvable, réessaie plus tard.";
+      return;
+    }
+    btn.disabled = true;
+    statusEl.style.color = "#8b8b93"; statusEl.textContent = "Création de l'utilisateur Powens…";
+    google.script.run
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur : " + (err && err.message ? err.message : "échec.");
+      })
+      .withSuccessHandler(function(bootstrapRes) {
+        if (!bootstrapRes || !bootstrapRes.success) {
+          btn.disabled = false;
+          statusEl.style.color = "#f87171";
+          statusEl.textContent = "Erreur : " + ((bootstrapRes && bootstrapRes.error) || "échec.");
+          return;
+        }
+        statusEl.textContent = "Enregistrement…";
+        var value = JSON.stringify({ domain: domain, auth_token: bootstrapRes.authToken, client_id: clientId });
+        google.script.run
+          .withFailureHandler(function(err) {
+            btn.disabled = false;
+            statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur : " + (err && err.message ? err.message : "échec.");
+          })
+          .withSuccessHandler(function(res) {
+            btn.disabled = false;
+            if (!res || !res.success) {
+              statusEl.style.color = "#f87171";
+              statusEl.textContent = "Erreur : " + ((res && res.errorCode) || "inconnue");
+              return;
+            }
+            statusEl.style.color = "#4ade80"; statusEl.textContent = "✓ Enregistré et chiffré.";
+            document.getElementById("op-powens-clientsecret").value = "";
+            var badge = document.getElementById("op-powens-configured-badge");
+            badge.textContent = "configuré ✓";
+            badge.className = "op-connector-configured";
+          })
+          .identitySetOrgSecret(ORG_ID, orgFolderId, "powens_credentials", value);
+      })
+      .executorPowensBootstrap(ORG_ID, domain, clientId, clientSecret);
+  });
+
+  // Repli/dépli au clic sur le nom (retour de Stéphane, 2026-08-02) — jamais tout affiché
+  // d'un coup, seulement nom + qui consulte au premier coup d'œil.
+  document.getElementById("op-org-name").addEventListener("click", function () {
+    var el = document.getElementById("op-expanded");
+    el.style.display = (el.style.display === "block") ? "none" : "block";
+  });
+
+  // Renommer l'organisation directement ici (retour de Stéphane : plus besoin de "Gérer
+  // l'organisation" à part pour un simple changement de nom).
+  document.getElementById("op-name-save-btn").addEventListener("click", function () {
+    var btn = this;
+    var name = (document.getElementById("op-name-input").value || "").trim();
+    var statusEl = document.getElementById("op-name-status");
+    if (!name) { statusEl.style.color = "#f87171"; statusEl.textContent = "Donne un nom."; return; }
+    if (!orgFolderId) { statusEl.style.color = "#f87171"; statusEl.textContent = "Dossier introuvable, réessaie plus tard."; return; }
+    // Un visiteur non-propriétaire peut essayer (retour de Stéphane, 2026-08-02 : "il faut
+    // juste que cela n'impacte pas réellement smcdemo") — aperçu local uniquement, jamais
+    // écrit sur la vraie brique Organisation partagée par tous les visiteurs de la démo.
+    if (!isOwnerFlag) {
+      document.getElementById("op-org-name").textContent = name;
+      statusEl.style.color = "#4ade80";
+      statusEl.textContent = "✓ Aperçu (démo) — pas enregistré réellement.";
+      return;
+    }
+    btn.disabled = true;
+    statusEl.style.color = "#8b8b93"; statusEl.textContent = "Enregistrement…";
+    google.script.run
+      .withFailureHandler(function (err) {
+        btn.disabled = false;
+        statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur : " + (err && err.message ? err.message : "échec.");
+      })
+      .withSuccessHandler(function (res) {
+        btn.disabled = false;
+        if (!res || !res.success) { statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur lors de l'enregistrement."; return; }
+        statusEl.style.color = "#4ade80"; statusEl.textContent = "✓ Nom enregistré.";
+        document.getElementById("op-org-name").textContent = name;
+      })
+      .identityUpdateOrgProfile(ORG_ID, orgFolderId, { name: name });
+  });
+
+  // Logo — un seul champ (retour de Stéphane, 2026-08-02 : "tu dépannes et simplifie sur un
+  // seul champ") : plus de 2e mécanisme "coller un lien" à côté, juste cliquer/glisser une
+  // image, comme n'importe quel avatar de service moderne.
+  var logoDropzone  = document.getElementById("op-logo-dropzone");
+  var logoFileInput = document.getElementById("op-logo-file-input");
+  logoDropzone.addEventListener("click", function () { logoFileInput.click(); });
+  ["dragenter", "dragover"].forEach(function (evt) {
+    logoDropzone.addEventListener(evt, function (e) { e.preventDefault(); logoDropzone.style.borderColor = "#f59e0b"; });
+  });
+  ["dragleave", "drop"].forEach(function (evt) {
+    logoDropzone.addEventListener(evt, function (e) { e.preventDefault(); logoDropzone.style.borderColor = "#2b2b33"; });
+  });
+  logoDropzone.addEventListener("drop", function (e) {
+    var file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) uploadOrgLogo(file);
+  });
+  logoFileInput.addEventListener("change", function () {
+    if (logoFileInput.files && logoFileInput.files[0]) uploadOrgLogo(logoFileInput.files[0]);
+  });
+
+  function uploadOrgLogo(file) {
+    var statusEl = document.getElementById("op-logo-status");
+    if (!orgFolderId) { statusEl.style.color = "#f87171"; statusEl.textContent = "Dossier introuvable, réessaie plus tard."; return; }
+    statusEl.style.color = "#8b8b93"; statusEl.textContent = "Envoi…";
+    var reader = new FileReader();
+    reader.onload = function () {
+      // Aperçu local uniquement pour un visiteur non-propriétaire (même principe que le
+      // renommage ci-dessus) — jamais de vraie écriture Drive sur le logo partagé de la démo.
+      if (!isOwnerFlag) {
+        var localPreview = document.getElementById("op-logo-preview");
+        localPreview.src = reader.result;
+        localPreview.style.display = "block";
+        trigger.innerHTML = '<img src="' + reader.result + '">';
+        statusEl.style.color = "#4ade80";
+        statusEl.textContent = "✓ Aperçu (démo) — pas enregistré réellement.";
+        return;
+      }
+      var base64 = reader.result.split(",")[1];
+      google.script.run
+        .withFailureHandler(function (err) {
+          statusEl.style.color = "#f87171"; statusEl.textContent = "Erreur : " + (err && err.message ? err.message : "échec de l'envoi.");
+        })
+        .withSuccessHandler(function (res) {
+          if (!res || !res.success) {
+            statusEl.style.color = "#f87171";
+            statusEl.textContent = "Erreur (" + ((res && res.errorCode) || "inconnue") + ")" + ((res && res.debug) ? " : " + res.debug : "");
+            return;
+          }
+          statusEl.style.color = "#4ade80"; statusEl.textContent = "✓ Logo mis à jour.";
+          var url = res.org.contenu.logoUrl;
+          var logoPreview = document.getElementById("op-logo-preview");
+          logoPreview.src = url;
+          logoPreview.style.display = "block";
+          trigger.innerHTML = '<img src="' + url + '">';
+        })
+        .identityUploadOrgLogo(ORG_ID, orgFolderId, base64, file.type || "image/png");
+    };
+    reader.readAsDataURL(file);
+  }
+})();
+</script>
