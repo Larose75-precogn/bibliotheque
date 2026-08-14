@@ -123,7 +123,10 @@ const CONTEXT_CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h : les règles changent rare
  */
 function getStructoryContext(orgId) {
   const cache = CacheService.getScriptCache();
-  const cacheKey = 'structory_context_' + orgId;
+  // Suffixe de version (2026-07-26) : bascule la clé de cache pour invalider tout contexte
+  // déjà en cache SANS le module suivre_mes_comptes (créé après coup) — sans ça, les orgs
+  // déjà testées aujourd'hui resteraient sur l'ancien contexte générique jusqu'à 6h.
+  const cacheKey = 'structory_context_v3_' + orgId;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 

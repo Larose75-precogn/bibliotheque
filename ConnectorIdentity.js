@@ -535,6 +535,51 @@ function identitySetSecret(orgId, folderId, name, contenu) {
   return { success: true };
 }
 
+function identityEnsureJournalPlaceholder(orgId, folderId) {
+  var folder;
+  try {
+    folder = DriveApp.getFolderById(folderId);
+  } catch (e) {
+    return { success: false, errorCode: 'folder_not_accessible' };
+  }
+  var existing = folder.getFilesByName('journal.ledger');
+  if (!existing.hasNext()) {
+    folder.createFile('journal.ledger', '', MimeType.PLAIN_TEXT);
+  }
+  return { success: true };
+}
+
+/**
+ * JournaldeBanque (2026-08-14) — crée le placeholder VIDE d'un relevé bancaire sanctuarisé
+ * (`_releves/<name>`, ex. "powens_bcp_stephane_courant.jsonl"), même contournement
+ * storageQuotaExceeded que `identityEnsureJournalPlaceholder`/`identityEnsureSecretPlaceholder`.
+ * Une seule création par (org, connector, compte) — jamais une par synchro : voir
+ * `~/analyzor/own_storage_releves.py` pour le protocole append-only complet (chaque appel
+ * suivant complète ce même fichier via update_file, jamais bloqué, jamais réécrit en place).
+ * `folderId` ici est le dossier `_releves/` LUI-MÊME (retourné par
+ * `POST /api/ownstorage/releve/append` en `errorCode: 'needs_bootstrap'` + `folderId`), pas le
+ * dossier racine de l'org — ce sous-dossier est créé automatiquement côté Python
+ * (create_folder n'est jamais bloqué, seule la création de fichier l'est).
+ *
+ * @param {string} orgId
+ * @param {string} relevesFolderId Dossier `_releves/` (PAS le dossier racine de l'org)
+ * @param {string} name Nom de fichier (ex. "powens_bcp_stephane_courant.jsonl")
+ * @returns {{success:boolean, errorCode?:string}}
+ */
+function identityEnsureRelevePlaceholder(orgId, relevesFolderId, name) {
+  var folder;
+  try {
+    folder = DriveApp.getFolderById(relevesFolderId);
+  } catch (e) {
+    return { success: false, errorCode: 'folder_not_accessible' };
+  }
+  var existing = folder.getFilesByName(name);
+  if (!existing.hasNext()) {
+    folder.createFile(name, '', MimeType.PLAIN_TEXT);
+  }
+  return { success: true };
+}
+
 /**
  * Crée un fichier PLACEHOLDER VIDE au format attendu par org_secrets.py (Python) —
  * `_secrets/<name>.enc`, contenu vide — pour contourner le blocage de création du compte de
@@ -908,10 +953,17 @@ function identityUpdateCompte(orgId, folderId, compteUid, contenu) {
 }
 
 /** Inclusion HTML du panneau "mon organisation" (rond + panneau, équivalent BYOS
- * d'AccountPanel.html — voir ConnectorAccount.js) — même pattern d'inclusion par template. */
-function getOrgPanelHtml(orgId) {
+ * d'AccountPanel.html — voir ConnectorAccount.js) — même pattern d'inclusion par template.
+ * verifiedRole/verifiedEmail (2026-08-11) : identité déjà prouvée par Navigator::authGate
+ * (session + appartenance réelle, subscriptions_api) — évite au panneau de refaire sa propre
+ * détection "isOwner" moins fiable (Drive/Session.getActiveUser(), toujours faux en pratique
+ * sous executeAs=USER_DEPLOYING) qui affichait un point bleu neutre à la place du ✓ vert même
+ * juste après une connexion réussie. null pour un visiteur non authentifié (smcdemo public). */
+function getOrgPanelHtml(orgId, verifiedRole, verifiedEmail) {
   var template = HtmlService.createTemplateFromFile("OrgPanel.html");
   template.orgId = orgId;
+  template.verifiedRole = verifiedRole || null;
+  template.verifiedEmail = verifiedEmail || null;
   return template.evaluate().getContent();
 }
 

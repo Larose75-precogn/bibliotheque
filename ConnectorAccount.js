@@ -51,6 +51,33 @@ function accountUpsertUser(email, locale) {
   return _callAccount("/api/account/upsert", { email: email, locale: locale || null }, "POST");
 }
 
+// ── Connexion réelle par lien magique (2026-08-08) ──
+// Un webapp Apps Script déployé executeAs=USER_DEPLOYING ne peut ni poser de cookie ni lire
+// Session.getActiveUser() pour un visiteur anonyme — la session vit donc en localStorage côté
+// navigateur, revalidée à chaque page via authGetSession. L'email lui-même est envoyé par
+// MailApp depuis Apps Script (jamais par subscriptions_api, qui n'a pas de SMTP configuré) —
+// authRequestLogin renvoie le jeton brut à l'appelant pour ça, ne l'email jamais lui-même.
+
+/** 1er temps : émet un jeton de connexion à usage unique pour cet email (crée le User si besoin). */
+function authRequestLogin(email) {
+  return _callAccount("/api/auth/request-login", { email: email }, "POST");
+}
+
+/** 2e temps : échange le jeton (cliqué dans l'email) contre une vraie session longue durée. */
+function authConsumeLoginToken(token) {
+  return _callAccount("/api/auth/consume-login-token", { token: token }, "POST");
+}
+
+/** Revalide une session existante (localStorage) — appelé à chaque chargement de page. */
+function authGetSession(sessionToken) {
+  return _callAccount("/api/auth/session", { token: sessionToken }, "GET");
+}
+
+/** Ce uid a-t-il un rôle sur CETTE org précise ? — condition avant de rendre des données réelles. */
+function authCheckMembership(orgId, uid) {
+  return _callAccount("/api/auth/membership", { orgId: orgId, uid: uid }, "GET");
+}
+
 /** Enregistre un orgId (déjà utilisé ailleurs, ex. ledger_api) dans le registre de compte. */
 function accountRegisterOrg(orgId, name, ownerUid) {
   return _callAccount("/api/org/register", { orgId: orgId, name: name, ownerUid: ownerUid }, "POST");

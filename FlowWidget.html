@@ -1,0 +1,103 @@
+<!--
+  PrecognFlow — composant partagé "Flow visible" (Objects/Flows/Time/Rules, voir
+  precogn.org/test). Retour de Stéphane, 2026-07-31 : "au lieu de masquer les traitements, tu
+  les rends visibles" — au lieu d'une barre de progression générique, les briques d'un flow
+  s'allument une à une ; si une brique casse, elle devient rouge et propose une reprise
+  (réessayer / autre chemin / repli manuel) au lieu d'un plantage générique de l'app. Retour du
+  2026-08-01 : "ça doit s'afficher au fur et à mesure, pas ton gros dessin là" — les étapes pas
+  encore atteintes ne sont plus juste grisées (tout le diagramme visible d'un coup), elles sont
+  entièrement invisibles jusqu'à ce que le flow les atteigne, révélées une à une. Générique et
+  sans dépendance (vanilla JS/CSS) pour être inclus tel quel par n'importe quel consommateur
+  Apps Script (Navigator aujourd'hui, potentiellement Communicator/org-onboarding plus tard) —
+  voir Bibliotheque.getFlowWidgetHtml().
+-->
+<style>
+  .pcf-flow { display:flex; flex-direction:column; align-items:center; padding:12px 0; }
+  .pcf-step {
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    opacity:0; max-height:0; overflow:hidden;
+    transition:opacity .4s ease, max-height .4s ease;
+  }
+  .pcf-step.pcf-revealed { opacity:1; max-height:90px; }
+  .pcf-step-icon {
+    width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:19px; background:#11181C; border:2px solid #21442D; transition:border-color .35s, background .35s, box-shadow .35s;
+  }
+  .pcf-step-label { font-size:11px; color:#7AAE92; text-align:center; max-width:110px; }
+  .pcf-arrow { width:2px; height:0; background:#21442D; overflow:hidden; transition:height .3s ease, background .35s ease; }
+  .pcf-arrow.pcf-revealed { height:16px; }
+  .pcf-step.pcf-active .pcf-step-icon {
+    border-color:#00FF66; box-shadow:0 0 12px rgba(0,255,102,.5); animation:pcf-pulse 1.1s ease-in-out infinite;
+  }
+  .pcf-step.pcf-success .pcf-step-icon { border-color:#00FF66; background:#0d2417; }
+  .pcf-step.pcf-error .pcf-step-icon { border-color:#FF5555; background:#2a1010; animation:none; }
+  @keyframes pcf-pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.14); } }
+  .pcf-recovery { margin-top:12px; width:100%; text-align:center; display:none; }
+  .pcf-recovery-msg { font-size:12px; color:#FF8080; margin-bottom:8px; line-height:1.4; }
+  .pcf-recovery-btn {
+    display:block; width:100%; margin-bottom:6px; padding:8px 10px; border-radius:6px;
+    border:1px solid #21442D; background:#11181C; color:#D8FFE5; font-size:12px; cursor:pointer;
+  }
+  .pcf-recovery-btn:hover { border-color:#00FF66; }
+</style>
+<script>
+  // API globale volontairement minimale : render (une fois), setStatus (active/success/error par
+  // étape — révèle aussi l'étape et la flèche qui la précède), showRecovery/hideRecovery (panneau
+  // de reprise sous le flow). `container` est l'élément DOM cible (pas juste un id) pour rester
+  // utilisable dans un panneau recréé dynamiquement (innerHTML remplacé) sans jamais pointer sur
+  // un id périmé.
+  var PrecognFlow = (function () {
+    function render(container, steps) {
+      container.innerHTML = '';
+      var wrap = document.createElement('div');
+      wrap.className = 'pcf-flow';
+      steps.forEach(function (step, i) {
+        if (i > 0) {
+          var arrow = document.createElement('div');
+          arrow.className = 'pcf-arrow';
+          wrap.appendChild(arrow);
+        }
+        var stepEl = document.createElement('div');
+        stepEl.className = 'pcf-step';
+        stepEl.setAttribute('data-pcf-step', step.id);
+        stepEl.innerHTML = '<div class="pcf-step-icon">' + step.icon + '</div>'
+          + '<div class="pcf-step-label">' + step.label + '</div>';
+        wrap.appendChild(stepEl);
+      });
+      var recovery = document.createElement('div');
+      recovery.className = 'pcf-recovery';
+      wrap.appendChild(recovery);
+      container.appendChild(wrap);
+      // La toute 1re étape est révélée immédiatement — le flow ne doit jamais démarrer
+      // totalement vide, seulement les étapes SUIVANTES apparaissent au fur et à mesure.
+      if (steps.length) setStatus(container, steps[0].id, null);
+    }
+    function _stepEl(container, stepId) {
+      return container.querySelector('[data-pcf-step="' + stepId + '"]');
+    }
+    function setStatus(container, stepId, status) {
+      var el = _stepEl(container, stepId);
+      if (!el) return;
+      el.className = 'pcf-step pcf-revealed' + (status ? ' pcf-' + status : '');
+      var arrow = el.previousElementSibling;
+      if (arrow && arrow.classList.contains('pcf-arrow')) arrow.classList.add('pcf-revealed');
+    }
+    function showRecovery(container, message, actions) {
+      var el = container.querySelector('.pcf-recovery');
+      if (!el) return;
+      el.innerHTML = '<div class="pcf-recovery-msg">' + message + '</div>'
+        + actions.map(function (a, i) {
+            return '<button type="button" class="pcf-recovery-btn" data-pcf-action="' + i + '">' + a.label + '</button>';
+          }).join('');
+      actions.forEach(function (a, i) {
+        el.querySelector('[data-pcf-action="' + i + '"]').addEventListener('click', a.onClick);
+      });
+      el.style.display = 'block';
+    }
+    function hideRecovery(container) {
+      var el = container.querySelector('.pcf-recovery');
+      if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+    }
+    return { render: render, setStatus: setStatus, showRecovery: showRecovery, hideRecovery: hideRecovery };
+  })();
+</script>

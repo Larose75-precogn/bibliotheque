@@ -1,58 +1,154 @@
 <style>
+  /* Palette réelle Structory (structory.ai/style.css) : fond noir #0b0b0f, cartes #17171c,
+     bordures #2b2b33, texte #f4f4f5, accent ambre #f59e0b — pas une palette inventée. */
   #pc-account-trigger {
     position: fixed; top: 14px; right: 14px; z-index: 9999;
     width: 36px; height: 36px; border-radius: 50%;
-    background: #2b6e68; color: #fff; border: 2px solid transparent;
+    background: #17171c; border: 2px solid #2b2b33;
     display: flex; align-items: center; justify-content: center;
-    font-family: -apple-system, sans-serif; font-size: 15px; font-weight: 600;
-    cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-    background-size: cover; background-position: center;
+    cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    background-size: cover; background-position: center; overflow: hidden;
   }
-  #pc-account-trigger.pc-gold { border-color: #d4af37; box-shadow: 0 0 0 2px #d4af37; }
+  #pc-account-trigger img { width: 100%; height: 100%; object-fit: cover; }
+  #pc-account-trigger.pc-gold { border-color: #f59e0b; box-shadow: 0 0 0 2px #f59e0b; }
+  #pc-account-trigger .pc-trigger-placeholder { color: #8b8b93; font-size: 16px; font-weight: 700; font-family: Arial, sans-serif; }
   #pc-account-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 9998;
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9998;
   }
   #pc-account-panel {
     position: fixed; top: 0; right: 0; height: 100%; width: 320px; max-width: 92vw;
-    background: #fff; z-index: 9999; box-shadow: -2px 0 12px rgba(0,0,0,0.2);
-    padding: 20px; overflow-y: auto; font-family: -apple-system, sans-serif; font-size: 14px; color: #20242a;
-    box-sizing: border-box;
+    background: #0b0b0f; color: #f4f4f5; z-index: 9999; box-shadow: -2px 0 12px rgba(0,0,0,0.4);
+    padding: 20px; overflow-y: auto; font-family: Arial, sans-serif; font-size: 14px;
+    box-sizing: border-box; border-left: 1px solid #2b2b33;
   }
-  #pc-account-panel h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7178; margin: 20px 0 8px; }
-  #pc-account-panel h3:first-of-type { margin-top: 0; }
-  #pc-account-panel input { width: 100%; box-sizing: border-box; padding: 6px 8px; margin-bottom: 6px; border: 1px solid #dedbd3; border-radius: 4px; font-size: 13px; }
-  #pc-account-panel button { padding: 7px 12px; border-radius: 4px; border: none; background: #2b6e68; color: #fff; font-size: 13px; cursor: pointer; }
-  #pc-account-panel button.pc-gold-btn { background: #b8860b; }
-  #pc-account-close { position: absolute; top: 14px; right: 14px; cursor: pointer; font-size: 18px; background: none; color: #6b7178; }
-  .pc-member-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
-  .pc-member-row img { width: 22px; height: 22px; border-radius: 50%; background: #eee; }
-  .pc-plan-badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 12px; margin-bottom: 8px; }
-  .pc-plan-free { background: #e4eeec; color: #2b6e68; }
-  .pc-plan-gold { background: #fbf0d9; color: #8a6412; }
-  #pc-account-status { font-size: 12px; color: #6b7178; margin-top: 8px; }
+  #pc-panel-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer; text-decoration: none; }
+  #pc-panel-brand img { height: 22px; }
+  #pc-panel-brand span { color: #f4f4f5; font-size: 13px; font-weight: 600; }
+  #pc-account-panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #f59e0b; margin: 20px 0 8px; }
+  #pc-account-panel input {
+    width: 100%; box-sizing: border-box; padding: 7px 9px; margin-bottom: 6px;
+    background: #17171c; border: 1px solid #2b2b33; border-radius: 8px; color: #f4f4f5; font-size: 13px;
+  }
+  #pc-account-panel input::placeholder { color: #8b8b93; }
+  #pc-account-panel input:disabled { opacity: 0.6; }
+  #pc-account-panel button {
+    padding: 8px 14px; border-radius: 10px; border: none; background: #f59e0b;
+    color: #0b0b0f; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  #pc-account-panel button:disabled { opacity: 0.6; cursor: default; }
+  #pc-account-panel button.pc-gold-btn { background: #f59e0b; }
+  #pc-account-panel button.pc-ghost-btn { background: #2b2b33; color: #f4f4f5; font-weight: 500; padding: 5px 10px; font-size: 12px; }
+  #pc-account-panel a.pc-textlink { color: #8b8b93; text-decoration: underline; font-size: 12px; cursor: pointer; }
+  #pc-account-close {
+    position: absolute; top: 14px; right: 14px; cursor: pointer; font-size: 18px;
+    background: none; border: none; color: #8b8b93;
+  }
+  .pc-member-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; color: #d1d5db; }
+  .pc-member-row img { width: 22px; height: 22px; border-radius: 50%; background: #17171c; }
+  .pc-org-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    margin-bottom: 6px; padding: 6px 8px; background: #17171c; border: 1px solid #2b2b33; border-radius: 8px;
+  }
+  .pc-org-row span { font-size: 13px; color: #d1d5db; }
+  .pc-suggestion-box {
+    background: #17171c; border: 1px dashed #f59e0b; border-radius: 8px; padding: 10px;
+    margin-bottom: 12px;
+  }
+  .pc-suggestion-box p { margin: 0 0 8px; }
+  .pc-request-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    margin-bottom: 6px; font-size: 13px; color: #d1d5db;
+  }
+  .pc-plan-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; margin-bottom: 8px; }
+  .pc-plan-free { background: #17171c; color: #d1d5db; border: 1px solid #2b2b33; }
+  .pc-plan-gold { background: #f59e0b; color: #0b0b0f; font-weight: 600; }
+  #pc-account-status { font-size: 12px; color: #8b8b93; margin-top: 8px; }
+  #pc-org-image-drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 16px; margin-bottom: 8px; text-align: center;
+    background: #17171c; border: 1px dashed #2b2b33; border-radius: 10px;
+    color: #8b8b93; font-size: 12px; cursor: pointer;
+  }
+  #pc-org-image-drop.pc-dragover { border-color: #f59e0b; color: #f59e0b; }
+  #pc-org-image-preview { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
 </style>
 
-<div id="pc-account-trigger" title="Mon compte">?</div>
+<div id="pc-account-trigger" title="Mon compte"><span class="pc-trigger-placeholder">?</span></div>
 <div id="pc-account-overlay">
   <div id="pc-account-panel">
     <button id="pc-account-close">&times;</button>
 
+    <a id="pc-panel-brand" href="https://structory.ai" target="_blank" rel="noopener">
+      <img src="https://structory.ai/logo-structory.png" alt="Structory" />
+      <span>Structory</span>
+    </a>
+
+    <!-- Écran 1 : identification (pas encore de compte connu sur cet appareil) — création
+         d'organisation en libre-service, dans l'OwnStorage du visiteur (aujourd'hui son Drive),
+         jamais le nôtre. Voir bibliotheque/ConnectorIdentity.js. -->
     <div id="pc-account-bootstrap">
-      <h3>Bienvenue</h3>
-      <p style="font-size:13px;color:#6b7178;">Premier passage ici — indique ton email pour créer ton compte Structory.</p>
-      <input id="pc-bootstrap-email" type="email" placeholder="ton@email.com" />
-      <button id="pc-bootstrap-save">Créer mon compte</button>
+      <div style="font-size:28px;margin-bottom:6px;">👋</div>
+      <h3 style="margin-top:0;">Bienvenue !</h3>
+      <p style="font-size:13px;color:#d1d5db;line-height:1.5;">Créer ton organisation est gratuit — les données sont stockées chez toi (ton propre Drive), pas chez nous.</p>
+      <p style="font-size:12px;color:#8b8b93;line-height:1.4;">
+        ⚠️ Avant le formulaire, Google va te demander d'autoriser l'accès (quelques écrans,
+        en partie en anglais — normal, rien à craindre).
+        <a href="#" id="pc-google-steps-toggle" class="pc-textlink" style="margin-left:4px;">Voir le détail</a>
+      </p>
+      <ol id="pc-google-steps" style="display:none;font-size:12px;color:#8b8b93;line-height:1.6;background:#0b0b0f;border:1px solid #2b2b33;border-radius:8px;padding:10px 10px 10px 26px;margin:0 0 12px;">
+        <li>"Autorisation requise" → clique sur <strong>"Vérifier les autorisations"</strong>.</li>
+        <li>Choisis ton compte Google (une nouvelle fenêtre peut s'ouvrir).</li>
+        <li>Écran "Google n'a pas vérifié cette application" — normal, l'app est en test. Clique
+          sur le lien <strong>"Paramètres avancés"</strong> en bas, puis sur
+          <strong>"Accéder à Structory (non sécurisé)"</strong> — les libellés exacts dépendent
+          de la langue de ton compte.</li>
+        <li>Écran qui liste les accès demandés (ton Drive, ton email) → <strong>"Continuer"</strong>.</li>
+        <li>Un dernier <strong>"Continuer"</strong> de confirmation.</li>
+      </ol>
+      <p style="font-size:13px;color:#d1d5db;line-height:1.5;">Ensuite : ton nom (ou pseudo), le nom de ton organisation, et le bouton ci-dessous.</p>
+      <button id="pc-create-org-btn">Créer mon organisation</button>
+      <div id="pc-bootstrap-status" style="font-size:12px;color:#f59e0b;margin-top:6px;"></div>
     </div>
 
+    <!-- Écran 1bis : profil minimal (nom/prénom/pseudo — demandé tout de suite, distinct des
+         infos complémentaires optionnelles adresse/téléphone que l'utilisateur remplira plus
+         tard s'il le souhaite, cf. Stéphane 2026-07-20) -->
+    <div id="pc-account-profile" style="display:none;">
+      <h3 style="margin-top:0;">Encore une chose</h3>
+      <p style="font-size:13px;color:#d1d5db;line-height:1.5;">Comment veux-tu qu'on t'appelle ? (nom, prénom, ou simplement un pseudo)</p>
+      <input id="pc-profile-name" placeholder="Ton nom, prénom ou pseudo" />
+      <button id="pc-profile-save">Continuer</button>
+      <div id="pc-profile-status" style="font-size:12px;color:#ef4444;margin-top:6px;"></div>
+    </div>
+
+    <!-- Écran 2 : choix d'organisation (identité connue, jamais d'adhésion automatique) -->
+    <div id="pc-account-orgchoice" style="display:none;">
+      <h3 style="margin-top:0;">Tes organisations</h3>
+      <div id="pc-orgchoice-suggestion"></div>
+      <div id="pc-orgchoice-list"></div>
+      <h3>Créer</h3>
+      <input id="pc-neworg-name" placeholder="Nom de la nouvelle organisation" />
+      <button id="pc-neworg-create">+ Créer une nouvelle organisation</button>
+      <div id="pc-orgchoice-status" style="font-size:12px;color:#8b8b93;margin-top:8px;"></div>
+    </div>
+
+    <!-- Écran 3 : organisation active -->
     <div id="pc-account-content" style="display:none;">
+      <p style="margin:0 0 10px;"><a href="#" id="pc-switch-org" class="pc-textlink">↺ Changer d'organisation</a></p>
+
       <h3>Organisation</h3>
       <input id="pc-org-name" placeholder="Nom de l'organisation" />
-      <input id="pc-org-logo" placeholder="URL du logo" />
-      <input id="pc-org-info" placeholder="Coordonnées (adresse, etc.)" />
+      <div id="pc-org-image-drop">
+        <img id="pc-org-image-preview" style="display:none;" alt="" />
+        <span id="pc-org-image-placeholder">Glisse une image ici, ou clique pour en choisir une</span>
+      </div>
+      <input id="pc-org-image-file" type="file" accept="image/*" style="display:none;" />
       <button id="pc-org-save">Enregistrer</button>
+      <div id="pc-org-save-status" style="font-size:12px;color:#8b8b93;margin-top:6px;"></div>
 
       <h3>Utilisateur</h3>
       <div id="pc-members"></div>
+      <div id="pc-join-requests"></div>
 
       <h3>Cœur comptable</h3>
       <div id="pc-plan-badge" class="pc-plan-badge pc-plan-free">Forfait gratuit — Free Party, Open Mind</div>
@@ -64,58 +160,339 @@
 
 <script>
 (function () {
-  var ORG_ID = "<?= orgId ?>";
-  var STORAGE_KEY = 'pc_account_uid_' + ORG_ID;
-  var myUid = localStorage.getItem(STORAGE_KEY);
+  // orgId dans l'URL : un simple indice de contexte ("tu es peut-être arrivé pour rejoindre
+  // ceci"), plus jamais une identité présumée ni une adhésion automatique (Stéphane 2026-07-19 :
+  // "le user décide" — c'est précisément ce qui manquait et causait le bug où un nouveau
+  // visiteur d'un lien vers une org existante se retrouvait à voir les données de quelqu'un
+  // d'autre sans y être pour rien).
+  var ORG_ID_HINT = "<?= orgId ?>";
+  var UID_KEY = 'pc_account_uid';
+  var myUid = localStorage.getItem(UID_KEY);
+  var currentOrgId = null;
 
   var trigger = document.getElementById('pc-account-trigger');
   var overlay = document.getElementById('pc-account-overlay');
   var closeBtn = document.getElementById('pc-account-close');
 
+  function lastOrgKey() { return myUid ? ('pc_last_org_' + myUid) : null; }
+  function getLastOrg() { var k = lastOrgKey(); return k ? localStorage.getItem(k) : null; }
+  function setLastOrg(orgId) { var k = lastOrgKey(); if (k) localStorage.setItem(k, orgId); }
+
+  function showScreen(name) {
+    document.getElementById('pc-account-bootstrap').style.display = name === 'bootstrap' ? 'block' : 'none';
+    document.getElementById('pc-account-profile').style.display = name === 'profile' ? 'block' : 'none';
+    document.getElementById('pc-account-orgchoice').style.display = name === 'orgchoice' ? 'block' : 'none';
+    document.getElementById('pc-account-content').style.display = name === 'content' ? 'block' : 'none';
+  }
+
+  var profileNameInput = document.getElementById('pc-profile-name');
+  var profileStatus = document.getElementById('pc-profile-status');
+  document.getElementById('pc-profile-save').addEventListener('click', function () {
+    var name = profileNameInput.value.trim();
+    if (!name) {
+      profileStatus.textContent = 'Un nom, prénom ou pseudo suffit — mais il en faut un.';
+      return;
+    }
+    profileStatus.textContent = '';
+    google.script.run
+      .withFailureHandler(function () { profileStatus.textContent = 'Le service ne répond pas — réessaie.'; })
+      .withSuccessHandler(function () { showOrgChoice(); })
+      .accountUpdateUserProfile(myUid, { name: name });
+  });
+
   trigger.addEventListener('click', function () {
     overlay.style.display = 'block';
-    if (myUid) loadProfile();
+    if (!myUid) {
+      showScreen('bootstrap');
+    } else if (currentOrgId) {
+      showScreen('content');
+    } else {
+      showOrgChoice();
+    }
   });
   closeBtn.addEventListener('click', function () { overlay.style.display = 'none'; });
   overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.style.display = 'none'; });
 
-  document.getElementById('pc-bootstrap-save').addEventListener('click', function () {
-    var email = document.getElementById('pc-bootstrap-email').value.trim();
-    if (!email || email.indexOf('@') === -1) { alert('Email invalide'); return; }
-    google.script.run.withSuccessHandler(function (res) {
-      if (!res.success) { alert('Erreur : ' + (res.errorCode || 'inconnue')); return; }
-      myUid = res.user.uid;
-      localStorage.setItem(STORAGE_KEY, myUid);
-      google.script.run.withSuccessHandler(function () { loadProfile(); })
-        .accountRegisterOrg(ORG_ID, ORG_ID, myUid);
-    }).accountUpsertUser(email, null);
+  // --------------------------------------------------------------
+  // Écran 1 : identification — création d'organisation en libre-service, dans l'OwnStorage du
+  // visiteur (aujourd'hui Google Drive, via un déploiement Apps Script exécuté avec SON
+  // identité — executeAs: USER_ACCESSING, pas le compte de service ni celui de Stéphane, voir
+  // ~/projects/org-onboarding/). Cette page redirige elle-même vers Communicator une fois
+  // l'organisation créée — pas de polling nécessaire ici.
+  // --------------------------------------------------------------
+  var ORG_ONBOARDING_URL = 'https://script.google.com/macros/s/AKfycbw8hhBqSBl4elLaV4a3nVTRVFGp4mmwRSCuguk1U4Fi1U4aN4Em4qvnLxWbp9t7L_j-/exec';
+  var createOrgBtn = document.getElementById('pc-create-org-btn');
+  var bootstrapStatus = document.getElementById('pc-bootstrap-status');
+
+  var googleStepsToggle = document.getElementById('pc-google-steps-toggle');
+  var googleSteps = document.getElementById('pc-google-steps');
+  googleStepsToggle.addEventListener('click', function (e) {
+    e.preventDefault();
+    var show = googleSteps.style.display === 'none';
+    googleSteps.style.display = show ? 'block' : 'none';
+    googleStepsToggle.textContent = show ? 'Masquer le détail' : 'Voir le détail';
   });
 
-  function loadProfile() {
-    document.getElementById('pc-account-bootstrap').style.display = 'none';
-    document.getElementById('pc-account-content').style.display = 'block';
-    google.script.run.withSuccessHandler(renderProfile).accountGetOrgProfile(ORG_ID);
+  createOrgBtn.addEventListener('click', function () {
+    var url = ORG_ID_HINT ? (ORG_ONBOARDING_URL + '?orgId=' + encodeURIComponent(ORG_ID_HINT)) : ORG_ONBOARDING_URL;
+    var popup = window.open(url, '_blank');
+    bootstrapStatus.innerHTML = '';
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      var link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = 'Continuer →';
+      link.style.color = '#f59e0b';
+      link.style.fontWeight = '600';
+      bootstrapStatus.appendChild(link);
+    } else {
+      bootstrapStatus.textContent = 'Page ouverte dans un nouvel onglet — une fois terminé, tu reviendras directement ici avec ton organisation.';
+    }
+  });
+
+  // --------------------------------------------------------------
+  // Écran 2 : choix d'organisation — jamais d'adhésion silencieuse (Stéphane 2026-07-19).
+  // Passe systématiquement par l'écran 1bis (nom/prénom/pseudo) tant qu'il n'est pas connu,
+  // que ce soit juste après l'inscription ou au retour d'un ancien compte créé avant que ce
+  // champ existe (Stéphane 2026-07-20).
+  // --------------------------------------------------------------
+  function showOrgChoice() {
+    currentOrgId = null;
+    var listEl = document.getElementById('pc-orgchoice-list');
+    var suggestionEl = document.getElementById('pc-orgchoice-suggestion');
+    var statusEl = document.getElementById('pc-orgchoice-status');
+
+    google.script.run
+      .withFailureHandler(function () {
+        showScreen('orgchoice');
+        listEl.innerHTML = '<em style="color:#ef4444;">Impossible de charger tes organisations.</em>';
+      })
+      .withSuccessHandler(function (res) {
+        if (!res || !res.name) {
+          showScreen('profile');
+          profileStatus.textContent = '';
+          profileNameInput.value = '';
+          return;
+        }
+        showScreen('orgchoice');
+        listEl.innerHTML = '<em style="color:#8b8b93;">Chargement…</em>';
+        suggestionEl.innerHTML = '';
+        statusEl.textContent = '';
+        var orgs = res.orgs || [];
+        renderOrgChoiceList(orgs);
+        if (ORG_ID_HINT && !orgs.some(function (o) { return o.org_id === ORG_ID_HINT; })) {
+          renderSuggestion(ORG_ID_HINT);
+        }
+      }).accountOrgsForUid(myUid);
   }
 
-  function renderProfile(res) {
+  function renderOrgChoiceList(orgs) {
+    var listEl = document.getElementById('pc-orgchoice-list');
+    if (!orgs.length) {
+      listEl.innerHTML = '<em style="color:#8b8b93;">Tu n\'as encore rejoint aucune organisation.</em>';
+      return;
+    }
+    listEl.innerHTML = '';
+    orgs.forEach(function (o) {
+      var row = document.createElement('div');
+      row.className = 'pc-org-row';
+      var label = document.createElement('span');
+      var roleLabel = o.role === 'owner' ? ' (propriétaire)' : o.role === 'viewer' ? ' (lecture seule)' : '';
+      label.textContent = (o.name || o.org_id) + roleLabel;
+      var btn = document.createElement('button');
+      btn.textContent = 'Continuer';
+      btn.addEventListener('click', function () { selectOrg(o.org_id); });
+      row.appendChild(label);
+      row.appendChild(btn);
+      listEl.appendChild(row);
+    });
+  }
+
+  function renderSuggestion(orgId) {
+    var suggestionEl = document.getElementById('pc-orgchoice-suggestion');
+    var box = document.createElement('div');
+    box.className = 'pc-suggestion-box';
+    var p = document.createElement('p');
+    p.style.cssText = 'font-size:12px;color:#d1d5db;';
+    p.textContent = 'Tu es arrivé via un lien vers "' + orgId + '".';
+    var btn = document.createElement('button');
+    btn.className = 'pc-ghost-btn';
+    btn.textContent = 'Rejoindre ' + orgId + ' ?';
+    btn.addEventListener('click', function () { requestJoin(orgId); });
+    box.appendChild(p);
+    box.appendChild(btn);
+    suggestionEl.innerHTML = '';
+    suggestionEl.appendChild(box);
+  }
+
+  function requestJoin(orgId) {
+    var statusEl = document.getElementById('pc-orgchoice-status');
+    statusEl.style.color = '#8b8b93';
+    statusEl.textContent = 'Demande en cours…';
+    google.script.run
+      .withFailureHandler(function () {
+        statusEl.style.color = '#ef4444';
+        statusEl.textContent = 'Le service ne répond pas — réessaie.';
+      })
+      .withSuccessHandler(function (res) {
+        if (!res || !res.success) {
+          statusEl.style.color = '#ef4444';
+          statusEl.textContent = (res && res.errorCode === 'org_closed')
+            ? 'Cette organisation est fermée — demande une invitation directement à son propriétaire.'
+            : 'Erreur lors de la demande.';
+          return;
+        }
+        if (res.status === 'joined') {
+          statusEl.style.color = '#f59e0b';
+          statusEl.textContent = '✓ Ajouté.';
+          selectOrg(orgId);
+        } else {
+          statusEl.style.color = '#f59e0b';
+          statusEl.textContent = 'Demande envoyée — en attente de validation par le propriétaire.';
+        }
+      }).accountJoinRequest(myUid, orgId, 'editor');
+  }
+
+  function slugify(s) {
+    var base = s.toLowerCase();
+    if (base.normalize) base = base.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return base.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'org';
+  }
+
+  document.getElementById('pc-neworg-create').addEventListener('click', function () {
+    var nameInput = document.getElementById('pc-neworg-name');
+    var name = nameInput.value.trim();
+    var statusEl = document.getElementById('pc-orgchoice-status');
+    if (!name) {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = 'Donne un nom à ton organisation.';
+      return;
+    }
+    var newOrgId = slugify(name) + '_' + Math.random().toString(36).slice(2, 8);
+    statusEl.style.color = '#8b8b93';
+    statusEl.textContent = 'Création…';
+    google.script.run
+      .withFailureHandler(function () {
+        statusEl.style.color = '#ef4444';
+        statusEl.textContent = 'Le service ne répond pas — réessaie.';
+      })
+      .withSuccessHandler(function (res) {
+        if (!res || res.success === false) {
+          statusEl.style.color = '#ef4444';
+          statusEl.textContent = 'Erreur lors de la création.';
+          return;
+        }
+        selectOrg(newOrgId);
+      }).accountRegisterOrg(newOrgId, name, myUid);
+  });
+
+  function selectOrg(orgId) {
+    currentOrgId = orgId;
+    setLastOrg(orgId);
+    loadProfile(orgId);
+  }
+
+  document.getElementById('pc-switch-org').addEventListener('click', function (e) {
+    e.preventDefault();
+    showOrgChoice();
+  });
+
+  // --------------------------------------------------------------
+  // Écran 3 : organisation active
+  // --------------------------------------------------------------
+
+  // Image de l'organisation : glisser-déposer ou clic, redimensionnée côté navigateur (max
+  // 200x200, JPEG) puis stockée en data URI — pas besoin d'un service d'hébergement séparé.
+  var orgImageDrop = document.getElementById('pc-org-image-drop');
+  var orgImageFile = document.getElementById('pc-org-image-file');
+  var orgImagePreview = document.getElementById('pc-org-image-preview');
+  var orgImagePlaceholder = document.getElementById('pc-org-image-placeholder');
+  var pendingLogoDataUri = null;
+
+  function resizeImageToDataUri(file, callback) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var size = 200;
+        var canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        var ctx = canvas.getContext('2d');
+        var scale = Math.max(size / img.width, size / img.height);
+        var w = img.width * scale, h = img.height * scale;
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+        callback(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleOrgImageFile(file) {
+    if (!file || file.type.indexOf('image/') !== 0) return;
+    resizeImageToDataUri(file, function (dataUri) {
+      pendingLogoDataUri = dataUri;
+      orgImagePreview.src = dataUri;
+      orgImagePreview.style.display = 'block';
+      orgImagePlaceholder.style.display = 'none';
+    });
+  }
+
+  orgImageDrop.addEventListener('click', function () { orgImageFile.click(); });
+  orgImageFile.addEventListener('change', function () { handleOrgImageFile(orgImageFile.files[0]); });
+  orgImageDrop.addEventListener('dragover', function (e) { e.preventDefault(); orgImageDrop.classList.add('pc-dragover'); });
+  orgImageDrop.addEventListener('dragleave', function () { orgImageDrop.classList.remove('pc-dragover'); });
+  orgImageDrop.addEventListener('drop', function (e) {
+    e.preventDefault();
+    orgImageDrop.classList.remove('pc-dragover');
+    handleOrgImageFile(e.dataTransfer.files[0]);
+  });
+
+  function loadProfile(orgId) {
+    showScreen('content');
+    google.script.run
+      .withSuccessHandler(function (res) { renderProfile(orgId, res); })
+      .accountGetOrgProfile(orgId);
+  }
+
+  function renderProfile(orgId, res) {
     if (!res.success || !res.org) return;
     var org = res.org;
+    var me = (org.members || []).filter(function (m) { return m.uid === myUid; })[0];
+    var myRole = me ? me.role : null;
+    var isOwner = myRole === 'owner';
+    var isViewer = myRole === 'viewer';
 
     document.getElementById('pc-org-name').value = org.name || '';
-    document.getElementById('pc-org-logo').value = org.logo_url || '';
-    document.getElementById('pc-org-info').value = (org.info && org.info.adresse) || '';
+    document.getElementById('pc-org-name').disabled = isViewer;
+    document.getElementById('pc-org-save').style.display = isViewer ? 'none' : 'inline-block';
+    pendingLogoDataUri = null;
     if (org.logo_url) {
-      trigger.style.backgroundImage = "url('" + org.logo_url + "')";
-      trigger.textContent = '';
+      orgImagePreview.src = org.logo_url;
+      orgImagePreview.style.display = 'block';
+      orgImagePlaceholder.style.display = 'none';
+    } else {
+      orgImagePreview.style.display = 'none';
+      orgImagePlaceholder.style.display = 'block';
     }
+    // Le rond reste sobre (juste la couleur) tant que l'organisation n'a pas son propre logo —
+    // le logo Structory, lui, est trop petit et illisible écrasé dans 36px, retiré de là.
+    // "?" = pas encore de compte/organisation ; une fois une org chargée, au minimum un "✓" —
+    // jamais laissé sur "?" comme si rien ne s'était passé (question de Stéphane, 2026-07-21).
+    trigger.innerHTML = org.logo_url ? '<img src="' + org.logo_url + '" alt="" />' : '<span class="pc-trigger-placeholder">✓</span>';
 
     var membersHtml = '';
     (org.members || []).forEach(function (m) {
+      var roleLabel = m.role === 'owner' ? ' (propriétaire)' : m.role === 'viewer' ? ' (lecture seule)' : '';
       membersHtml += '<div class="pc-member-row">' +
         (m.photoUrl ? '<img src="' + m.photoUrl + '">' : '<span>👤</span>') +
-        '<span>' + m.email + (m.role === 'owner' ? ' (propriétaire)' : '') + '</span></div>';
+        '<span>' + m.email + roleLabel + '</span></div>';
     });
     document.getElementById('pc-members').innerHTML = membersHtml || '<em>Aucun membre.</em>';
+
+    renderJoinRequestsSection(orgId, isOwner);
 
     var badge = document.getElementById('pc-plan-badge');
     var action = document.getElementById('pc-partner-action');
@@ -134,34 +511,131 @@
       var btn = document.getElementById('pc-become-partner');
       if (btn) {
         btn.addEventListener('click', function () {
-          document.getElementById('pc-account-status').textContent = 'Ouverture du paiement…';
-          google.script.run.withSuccessHandler(function (checkoutRes) {
-            if (checkoutRes.success && checkoutRes.checkoutUrl) {
-              window.open(checkoutRes.checkoutUrl, '_blank');
-            } else {
-              document.getElementById('pc-account-status').textContent = 'Erreur lors de la création du paiement.';
-            }
-          }).accountSubscriptionCheckout(myUid, null, null);
+          var status = document.getElementById('pc-account-status');
+          btn.disabled = true;
+          status.style.color = '#8b8b93';
+          status.textContent = 'Préparation du paiement…';
+
+          google.script.run
+            .withFailureHandler(function (error) {
+              btn.disabled = false;
+              status.style.color = '#ef4444';
+              status.textContent = 'Erreur : ' + (error && error.message ? error.message : 'échec de la création du paiement.');
+            })
+            .withSuccessHandler(function (checkoutRes) {
+              btn.disabled = false;
+              if (!checkoutRes || !checkoutRes.success || !checkoutRes.checkoutUrl) {
+                status.style.color = '#ef4444';
+                status.textContent = 'Erreur lors de la création du paiement.';
+                return;
+              }
+              // window.open() ici est appelé après un aller-retour réseau (hors du geste
+              // utilisateur direct) : la plupart des navigateurs le bloquent silencieusement.
+              // On tente quand même (ça marche dans certains contextes), mais on affiche
+              // toujours un vrai lien cliquable en secours, qui lui ne peut pas être bloqué.
+              var popup = window.open(checkoutRes.checkoutUrl, '_blank');
+              status.innerHTML = '';
+              if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                var link = document.createElement('a');
+                link.href = checkoutRes.checkoutUrl;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.textContent = 'Continuer vers le paiement →';
+                link.style.color = '#f59e0b';
+                link.style.fontWeight = '600';
+                status.appendChild(link);
+              } else {
+                status.textContent = 'Page de paiement ouverte dans un nouvel onglet.';
+              }
+            }).accountSubscriptionCheckout(myUid, null, null);
         });
       }
     }
   }
 
-  document.getElementById('pc-org-save').addEventListener('click', function () {
-    if (!myUid) return;
-    var fields = {
-      name: document.getElementById('pc-org-name').value.trim(),
-      logoUrl: document.getElementById('pc-org-logo').value.trim(),
-      info: { adresse: document.getElementById('pc-org-info').value.trim() }
-    };
-    google.script.run.withSuccessHandler(function () {
-      document.getElementById('pc-account-status').textContent = 'Enregistré.';
-      loadProfile();
-    }).accountUpdateOrgProfile(ORG_ID, fields);
+  function renderJoinRequestsSection(orgId, isOwner) {
+    var container = document.getElementById('pc-join-requests');
+    if (!isOwner) {
+      container.innerHTML = '';
+      return;
+    }
+    google.script.run
+      .withFailureHandler(function () { container.innerHTML = ''; })
+      .withSuccessHandler(function (res) {
+        var reqs = ((res && res.requests) || []).filter(function (r) { return r.status === 'pending'; });
+        if (!reqs.length) {
+          container.innerHTML = '';
+          return;
+        }
+        container.innerHTML = '';
+        var h = document.createElement('div');
+        h.style.cssText = 'font-size:12px;color:#f59e0b;margin:10px 0 4px;';
+        h.textContent = 'Demandes en attente';
+        container.appendChild(h);
+        reqs.forEach(function (r) {
+          var row = document.createElement('div');
+          row.className = 'pc-request-row';
+          var label = document.createElement('span');
+          label.textContent = r.email + ' (' + r.requested_role + ')';
+          var okBtn = document.createElement('button');
+          okBtn.className = 'pc-ghost-btn';
+          okBtn.textContent = '✓ Accepter';
+          okBtn.addEventListener('click', function () { decideJoin(r.id, 'granted', orgId); });
+          var noBtn = document.createElement('button');
+          noBtn.className = 'pc-ghost-btn';
+          noBtn.textContent = '✗ Refuser';
+          noBtn.addEventListener('click', function () { decideJoin(r.id, 'denied', orgId); });
+          row.appendChild(label);
+          row.appendChild(okBtn);
+          row.appendChild(noBtn);
+          container.appendChild(row);
+        });
+      }).accountListJoinRequests(orgId);
+  }
+
+  function decideJoin(requestId, decision, orgId) {
+    google.script.run.withSuccessHandler(function () { loadProfile(orgId); }).accountJoinDecide(requestId, decision);
+  }
+
+  var orgSaveBtn = document.getElementById('pc-org-save');
+  var orgSaveStatus = document.getElementById('pc-org-save-status');
+
+  orgSaveBtn.addEventListener('click', function () {
+    if (!myUid || !currentOrgId) return;
+    var fields = { name: document.getElementById('pc-org-name').value.trim() };
+    if (pendingLogoDataUri) fields.logoUrl = pendingLogoDataUri;
+
+    orgSaveBtn.disabled = true;
+    orgSaveStatus.style.color = '#8b8b93';
+    orgSaveStatus.textContent = 'Enregistrement…';
+
+    google.script.run
+      .withFailureHandler(function (error) {
+        orgSaveBtn.disabled = false;
+        orgSaveStatus.style.color = '#ef4444';
+        orgSaveStatus.textContent = 'Erreur : ' + (error && error.message ? error.message : 'échec de l\'enregistrement.');
+      })
+      .withSuccessHandler(function (res) {
+        orgSaveBtn.disabled = false;
+        if (res && res.success === false) {
+          orgSaveStatus.style.color = '#ef4444';
+          orgSaveStatus.textContent = 'Erreur : ' + (res.errorCode || 'échec de l\'enregistrement.');
+          return;
+        }
+        orgSaveStatus.style.color = '#f59e0b';
+        orgSaveStatus.textContent = '✓ Enregistré.';
+        loadProfile(currentOrgId);
+      }).accountUpdateOrgProfile(currentOrgId, fields);
   });
 
+  // Chargement silencieux au démarrage (avant toute ouverture du panneau) : juste pour que
+  // l'icône (logo/anneau or) reflète l'état réel dès l'affichage de la page, comme avant.
   if (myUid) {
-    loadProfile();
+    var initialOrg = getLastOrg();
+    if (initialOrg) {
+      currentOrgId = initialOrg;
+      loadProfile(initialOrg);
+    }
   }
 })();
 </script>

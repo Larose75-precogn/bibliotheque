@@ -107,9 +107,16 @@
 
   <div id="op-unresolved" style="display:none;">
     <h3>Pas encore d'organisation</h3>
-    <p>Aucune organisation trouv&#233;e. Cr&#233;e-en une ou rejoins celle d'un coll&#232;gue.</p>
+    <p>Aucune organisation trouv&#233;e. Cr&#233;e-en une, ou acc&#232;de directement &#224; celle que tu as d&#233;j&#224;.</p>
     <div class="op-actions">
       <a class="op-btn primary" id="op-create-link" href="#" target="_top">Cr&#233;er mon organisation</a>
+    </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid #2b2b33;">
+      <label style="display:block;font-size:11px;color:#8b8b93;margin-bottom:6px;">J'ai d&#233;j&#224; une organisation &#8212; son identifiant&nbsp;:</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="op-existing-orgid" placeholder="ex. smcspl" style="flex:1;min-width:0;padding:7px 10px;background:#0b0b0f;border:1px solid #2b2b33;border-radius:7px;color:#f4f4f5;font-size:12px;">
+        <button id="op-existing-orgid-btn" class="op-btn" style="white-space:nowrap;">Acc&#233;der</button>
+      </div>
     </div>
   </div>
 
@@ -263,7 +270,14 @@
 <script>
 (function () {
   var ORG_ID = <?!= JSON.stringify(orgId) ?>;
+  var VERIFIED_ROLE = <?!= JSON.stringify(verifiedRole) ?>;
+  var VERIFIED_EMAIL = <?!= JSON.stringify(verifiedEmail) ?>;
   var ORG_ONBOARDING_URL = "https://script.google.com/macros/s/AKfycbw8hhBqSBl4elLaV4a3nVTRVFGp4mmwRSCuguk1U4Fi1U4aN4Em4qvnLxWbp9t7L_j-/exec";
+  // Déploiement pinné réel de Navigator (voir ~/projects/navigator/CLAUDE.md) — utilisé pour
+  // que "J'ai déjà une organisation" (panneau "?", ci-dessous) recharge le VRAI Navigator avec
+  // l'orgId saisi, plutôt que de dupliquer cette logique ailleurs (ex. une page marketing) —
+  // retour explicite de Stéphane, 2026-08-06 : ce panneau est le seul bon endroit pour ça.
+  var NAVIGATOR_URL = "https://script.google.com/macros/s/AKfycbzJ_mGTi4mYSVAMBZIWJ1ybbEaDyOaF6AGrzZo-VU8mv7jp5n5YzE2vCJcCz4JBX3TEkQ/exec";
 
   var trigger  = document.getElementById("op-trigger");
   var overlay  = document.getElementById("op-overlay");
@@ -284,11 +298,15 @@
 
   document.getElementById("op-create-link").href = ORG_ONBOARDING_URL + (ORG_ID && ORG_ID !== "demo" ? "?orgId=" + encodeURIComponent(ORG_ID) : "");
   document.getElementById("op-manage-link").href  = ORG_ONBOARDING_URL + "?screen=manage&orgId=" + encodeURIComponent(ORG_ID || "");
-  // Toujours visible même quand l'org est déjà résolue (retour de Stéphane, 2026-08-02 : un
-  // visiteur de smcdemo doit pouvoir à tout moment créer SA PROPRE organisation, pas seulement
-  // depuis l'écran "aucune organisation trouvée") — mène au même point d'entrée self-service
-  // (CreateOrg.html, executeAs=USER_ACCESSING) que op-create-link.
-  document.getElementById("op-create-link-2").href = ORG_ONBOARDING_URL + (ORG_ID && ORG_ID !== "demo" ? "?orgId=" + encodeURIComponent(ORG_ID) : "");
+  // Visible pour un visiteur de démo/non authentifié (retour de Stéphane, 2026-08-02 : un
+  // visiteur de smcdemo doit pouvoir à tout moment créer SA PROPRE organisation) — mais PLUS
+  // quand l'identité est déjà vérifiée sur une vraie org (retour de Stéphane, 2026-08-11 :
+  // "n'a absolument rien à faire ici" une fois réellement connecté à SON organisation).
+  if (VERIFIED_ROLE) {
+    document.getElementById("op-create-link-2").style.display = "none";
+  } else {
+    document.getElementById("op-create-link-2").href = ORG_ONBOARDING_URL + (ORG_ID && ORG_ID !== "demo" ? "?orgId=" + encodeURIComponent(ORG_ID) : "");
+  }
 
   document.getElementById("op-add-member-btn").addEventListener("click", function() {
     document.getElementById("op-invite-form").style.display = "block";
@@ -323,6 +341,16 @@
       .accountUpsertUser(email, "fr");
   });
 
+  function _goToExistingOrg() {
+    var v = (document.getElementById("op-existing-orgid").value || "").trim();
+    if (!v) return;
+    window.top.location.href = NAVIGATOR_URL + "?orgId=" + encodeURIComponent(v);
+  }
+  document.getElementById("op-existing-orgid-btn").addEventListener("click", _goToExistingOrg);
+  document.getElementById("op-existing-orgid").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") _goToExistingOrg();
+  });
+
   if (!ORG_ID || ORG_ID === "demo") {
     resolved = true;
     document.getElementById("op-loading").style.display    = "none";
@@ -345,6 +373,12 @@
         return;
       }
 
+      // Identité déjà prouvée par Navigator::authGate (session + appartenance réelle) — prime
+      // sur la détection isOwner de identityGetOrgProfile (Drive/Session.getActiveUser(),
+      // toujours fausse en pratique sous executeAs=USER_DEPLOYING). Bug réel corrigé 2026-08-11 :
+      // le rond affichait un point bleu neutre juste après une connexion pourtant réussie.
+      if (VERIFIED_ROLE === "owner") { res.isOwner = true; }
+
       isOwnerFlag = !!res.isOwner;
       if (res.logoUrl) {
         trigger.innerHTML = '<img src="' + res.logoUrl + '">';
@@ -366,8 +400,8 @@
       // noSessionFallback=true côté Bibliotheque.identityGetOrgProfile) : on ne PEUT PAS savoir
       // qui visite réellement dans ce mode, donc on n'affiche rien plutôt qu'une fausse info
       // (bug réel corrigé 2026-08-02 : affichait avant l'email du déployeur pour tout le monde).
-      if (res.viewerEmail) {
-        document.getElementById("op-viewer-line").textContent = "Connecté en tant que " + res.viewerEmail;
+      if (res.viewerEmail || VERIFIED_EMAIL) {
+        document.getElementById("op-viewer-line").textContent = "Connecté en tant que " + (res.viewerEmail || VERIFIED_EMAIL);
       }
       document.getElementById("op-resolved").style.display = "block";
       document.getElementById("op-name-input").value = res.name || "";
