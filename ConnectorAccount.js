@@ -12,7 +12,8 @@ const ACCOUNT_URL = "http://213.32.16.118:8082";
 // demandée — même leçon que le garde-fou d'abonnement retiré plus tôt : pas de friction non
 // demandée. Ce système est encore interne (pas de dépôt public), le compromis sécurité est
 // jugé acceptable pour l'instant, comme partout ailleurs dans Bibliotheque.
-const ACCOUNT_SERVICE_KEY = "***REMOVED_SERVICE_KEY***";
+// Clé de service : Script Property STRUCTORY_SERVICE_KEY (à définir avant tout clasp push — voir RUNBOOK rotation).
+const ACCOUNT_SERVICE_KEY = PropertiesService.getScriptProperties().getProperty('STRUCTORY_SERVICE_KEY') || '';
 
 function _accountServiceKey() {
   return ACCOUNT_SERVICE_KEY;
