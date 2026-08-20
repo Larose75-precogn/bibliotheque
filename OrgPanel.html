@@ -170,6 +170,8 @@
       <div id="op-sub-section" class="op-section" style="display:none;">
         <div class="op-section-title">Abonnement</div>
         <div id="op-sub-info"></div>
+        <button id="op-sub-btn" class="op-btn primary" style="margin-top:8px; display:none;">S&#8217;abonner</button>
+        <div id="op-sub-status" style="font-size:11px; margin-top:6px; color:#8b8b93;"></div>
         <div id="op-partner-info"></div>
         <button id="op-partner-btn" class="op-btn primary" style="margin-top:8px; display:none;">Devenir Partenaire (1&#8364;/mois)</button>
         <div id="op-partner-status" style="font-size:11px; margin-top:6px; color:#8b8b93;"></div>
@@ -482,10 +484,10 @@
             var statusLabel = sub.status || null;
             var statusClass = statusLabel === "active" ? "op-sub-status-active" : "op-sub-status-inactive";
             var qty   = (typeof sub.quantity === "number") ? sub.quantity : null;
-            var price = qty !== null ? Math.max(0, qty - 2) : null;
+            var price = qty;  // quantite = deja le nb facture (1 membre gratuit/org)
 
             if (statusLabel) lines.push('<div class="op-sub-row"><span class="op-sub-key">Statut</span><span class="' + statusClass + '">' + statusLabel + '</span></div>');
-            if (qty   !== null) lines.push('<div class="op-sub-row"><span class="op-sub-key">Si&#232;ges</span><span>' + qty + '</span></div>');
+            if (qty   !== null) lines.push('<div class="op-sub-row"><span class="op-sub-key">Membres factur&#233;s</span><span>' + qty + '</span></div>');
             if (price !== null) lines.push('<div class="op-sub-row"><span class="op-sub-key">Montant</span><span>' + price + '&nbsp;&#8364;/mois</span></div>');
 
             // Statut "Partenaire" (1€/mois, personnel — distinct de l'abonnement de sièges
@@ -526,6 +528,24 @@
               }
             }
 
+            var subBtn = document.getElementById("op-sub-btn");
+            if (subBtn && partner.payerUid && sub.status !== "active") {
+              subBtn.style.display = "block";
+              subBtn.onclick = function () {
+                subBtn.disabled = true;
+                var subStatusEl = document.getElementById("op-sub-status");
+                subStatusEl.textContent = "Ouverture du paiement\u2026";
+                google.script.run
+                  .withFailureHandler(function () { subBtn.disabled = false; subStatusEl.textContent = "Erreur r\u00e9seau \u2014 r\u00e9essaie."; })
+                  .withSuccessHandler(function (res) {
+                    subBtn.disabled = false;
+                    if (!res || !res.success || !res.checkoutUrl) { subStatusEl.textContent = "Erreur : " + ((res && res.errorCode) || "inconnue"); return; }
+                    subStatusEl.textContent = "Page de paiement ouverte dans un nouvel onglet.";
+                    window.open(res.checkoutUrl, "_blank");
+                  })
+                  .accountSubscriptionCheckout(partner.payerUid, null, "fr", null);
+              };
+            }
             if (lines.length) {
               document.getElementById("op-sub-section").style.display = "block";
               document.getElementById("op-sub-info").innerHTML = lines.join("");

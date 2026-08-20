@@ -18,7 +18,8 @@ function _callLedger(endpoint, payload, method, _retryCount) {
   const options = {
     method: method,
     muteHttpExceptions: true,
-    contentType: "application/json"
+    contentType: "application/json",
+    headers: { "X-Service-Key": ACCOUNT_SERVICE_KEY }
   };
 
   if (method === "GET") {
@@ -92,7 +93,7 @@ function ledgerStatus() {
  * @returns {Object} { success, entry, compte, compteNom, confidence, balanceCheck }
  */
 function ledgerAddEntry(orgId, flow) {
-  return _callLedger("/api/ledger/entry", Object.assign({ orgId: orgId }, flow), "POST");
+  return _callLedger("/api/ledger/entry", Object.assign({ orgId: orgId, userEmail: Session.getActiveUser().getEmail() }, flow), "POST");
 }
 
 /**
@@ -106,7 +107,7 @@ function ledgerAddEntry(orgId, flow) {
  * @returns {Object} { success, nImported, balanceCheck, balanceError, error? }
  */
 function ledgerImportEntries(orgId, entries) {
-  return _callLedger("/api/ledger/import", { orgId: orgId, entries: entries }, "POST");
+  return _callLedger("/api/ledger/import", { orgId: orgId, entries: entries, userEmail: Session.getActiveUser().getEmail() }, "POST");
 }
 
 /**
