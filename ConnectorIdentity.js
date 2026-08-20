@@ -79,7 +79,7 @@ function _identityExtractFolderId(folderLink) {
  * `demo: true` pour que l'appelant l'affiche clairement et ne laisse jamais croire à une
  * sauvegarde qui n'a pas eu lieu.
  */
-function identityCreateOrg(orgName, userName, folderLink) {
+function identityCreateOrg(orgName, userName, folderLink, module) {
   var email = Session.getActiveUser().getEmail();
   if (!email) {
     return { success: false, errorCode: "no_google_identity" };
@@ -101,7 +101,7 @@ function identityCreateOrg(orgName, userName, folderLink) {
     return { success: false, errorCode: "org_id_taken", orgId: orgId };
   }
 
-  var orgBrick = _identityNewBrick("Organisation", orgName, { name: orgName, joinPolicy: "restricted" }, "org:" + orgId);
+  var orgBrick = _identityNewBrick("Organisation", orgName, { name: orgName, parentOrgId: (module || null), joinPolicy: "restricted" }, "org:" + orgId);
   var userBrick = _identityNewBrick("User", userName || email, { email: email, name: userName || null, role: "owner" }, "org:" + orgId);
 
   var parentFolderId = _identityExtractFolderId(folderLink);
@@ -121,6 +121,10 @@ function identityCreateOrg(orgName, userName, folderLink) {
   var folder = parentFolder.createFolder(orgId);
   _identityWriteBrickFile(folder, orgBrick);
   _identityWriteBrickFile(folder, userBrick);
+
+  // Journal de l'org cree dans SON OwnStorage des la creation (identite reelle,
+  // seul moyen de creer un fichier Drive : le compte de service ne peut pas). BYOS.
+  try { identityEnsureJournalPlaceholder(orgId, folder.getId()); } catch (e) {}
 
   try {
     folder.addViewer(ANALYZOR_SERVICE_ACCOUNT_EMAIL);
@@ -292,7 +296,7 @@ function identityLookupMyOrgs() {
  * **`noSessionFallback` obligatoire à `true` pour tout appelant en `executeAs: USER_DEPLOYING`**
  * (ex. Navigator) — bug réel trouvé le 2026-08-02 : sous ce mode d'exécution,
  * `Session.getActiveUser()` renvoie TOUJOURS l'identité du déployeur (Stéphane), jamais celle
- * du visiteur réel, même anonyme — "Connecté en tant que owner@example.com" s'affichait donc
+ * du visiteur réel, même anonyme — "Connecté en tant que le-deployeur" s'affichait donc
  * à n'importe quel visiteur de n'importe quelle org, pas seulement Stéphane. Les appelants en
  * `executeAs: USER_ACCESSING` (ex. org-onboarding) gardent le comportement d'origine, où
  * `Session.getActiveUser()` reflète bien le vrai visiteur.
