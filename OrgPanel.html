@@ -118,6 +118,11 @@
         <button id="op-existing-orgid-btn" class="op-btn" style="white-space:nowrap;">Acc&#233;der</button>
       </div>
     </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid #2b2b33;">
+      <p style="font-size:11px;color:#8b8b93;margin-bottom:8px;">Envie de soutenir Structory&nbsp;?</p>
+      <a class="op-btn primary" id="op-support-link" href="#" target="_top" style="margin-bottom:8px;">&#10084;&#65039; Soutenir &#8212; 1&#8364;/mois</a>
+      <a class="op-btn" id="op-subscribe-link" href="#" target="_top">Souscrire un abonnement</a>
+    </div>
   </div>
 
   <div id="op-resolved">
@@ -141,7 +146,7 @@
       </div>
 
       <div class="op-section" id="op-profile-section" style="display:none;">
-        <div class="op-section-title">Profil</div>
+        <div class="op-section-title">Identit&#233;</div>
         <label style="display:block;font-size:11px;color:#8b8b93;margin-bottom:4px;">Nom de l'organisation</label>
         <input type="text" id="op-name-input" style="width:100%;box-sizing:border-box;padding:7px 10px;background:#0b0b0f;border:1px solid #2b2b33;border-radius:7px;color:#f4f4f5;font-size:12px;margin-bottom:6px;">
         <button id="op-name-save-btn" style="padding:7px 14px;border-radius:7px;border:none;background:#f59e0b;color:#0b0b0f;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:6px;">Enregistrer</button>
@@ -299,6 +304,8 @@
   document.getElementById("op-close-btn").addEventListener("click", closePanel);
 
   document.getElementById("op-create-link").href = ORG_ONBOARDING_URL + (ORG_ID && ORG_ID !== "demo" ? "?orgId=" + encodeURIComponent(ORG_ID) : "");
+  var _supLink = document.getElementById("op-support-link"); if (_supLink) _supLink.href = ORG_ONBOARDING_URL + "?screen=support";
+  var _subLink = document.getElementById("op-subscribe-link"); if (_subLink) _subLink.href = ORG_ONBOARDING_URL + "?screen=subscribe";
   document.getElementById("op-manage-link").href  = ORG_ONBOARDING_URL + "?screen=manage&orgId=" + encodeURIComponent(ORG_ID || "");
   // Visible pour un visiteur de démo/non authentifié (retour de Stéphane, 2026-08-02 : un
   // visiteur de smcdemo doit pouvoir à tout moment créer SA PROPRE organisation) — mais PLUS
