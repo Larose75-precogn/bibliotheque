@@ -271,6 +271,18 @@
         <a class="op-btn primary" id="op-manage-link" href="#" target="_blank" style="display:none;">G&#233;rer l'organisation &#8599;</a>
         <a class="op-btn" id="op-create-link-2" href="#" target="_top">Cr&#233;er ma propre organisation &#8599;</a>
       </div>
+
+      <div id="op-danger-section" style="display:none;margin-top:16px;text-align:center;">
+        <a id="op-danger-toggle" style="font-size:11px;color:#6b7280;cursor:pointer;">Supprimer cette organisation</a>
+        <div id="op-danger-confirm" style="display:none;margin-top:10px;text-align:left;">
+          <div style="font-size:11px;color:#8b8b93;margin-bottom:8px;">Irréversible : supprime l'organisation et ses membres. Tes données dans ton stockage ne sont pas effacées.</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#f4f4f5;margin-bottom:8px;">
+            <input type="checkbox" id="op-danger-check" style="width:auto;margin:0;"> Je confirme la suppression
+          </label>
+          <button id="op-danger-btn" disabled style="padding:7px 14px;border-radius:7px;border:1px solid #7f1d1d;background:transparent;color:#ef4444;font-size:12px;cursor:not-allowed;opacity:.5;">Supprimer définitivement</button>
+          <div id="op-danger-status" style="font-size:11px;margin-top:6px;"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -433,6 +445,38 @@
           byosLink.href = driveUrl;
           byosLink.style.display = "flex";
           document.getElementById("op-byos-path").textContent = res.folderId;
+          var _dSec = document.getElementById("op-danger-section");
+          if (_dSec) {
+            _dSec.style.display = "block";
+            var _dTog = document.getElementById("op-danger-toggle"),
+                _dCf  = document.getElementById("op-danger-confirm"),
+                _dCk  = document.getElementById("op-danger-check"),
+                _dBt  = document.getElementById("op-danger-btn"),
+                _dSt  = document.getElementById("op-danger-status");
+            if (!_dTog._wired) {
+              _dTog._wired = true;
+              _dTog.onclick = function () { _dCf.style.display = (_dCf.style.display === "none") ? "block" : "none"; };
+              _dCk.onchange = function () {
+                _dBt.disabled = !_dCk.checked;
+                _dBt.style.opacity = _dCk.checked ? "1" : "0.5";
+                _dBt.style.cursor = _dCk.checked ? "pointer" : "not-allowed";
+              };
+              _dBt.onclick = function () {
+                if (!_dCk.checked) { return; }
+                _dBt.disabled = true;
+                _dSt.style.color = "#8b8b93"; _dSt.textContent = "Suppression\u2026";
+                var _link = "https://drive.google.com/drive/folders/" + orgFolderId;
+                google.script.run
+                  .withFailureHandler(function () { _dBt.disabled = false; _dSt.style.color = "#f87171"; _dSt.textContent = "Erreur r\u00e9seau \u2014 r\u00e9essaie."; })
+                  .withSuccessHandler(function (r) {
+                    if (!r || !r.success) { _dBt.disabled = false; _dSt.style.color = "#f87171"; _dSt.textContent = "Erreur : " + ((r && r.errorCode) || "inconnue"); return; }
+                    _dSt.style.color = "#00d97e"; _dSt.textContent = "Organisation supprim\u00e9e.";
+                    _dCf.style.display = "none"; _dTog.style.display = "none";
+                  })
+                  .identityDeleteOrg(ORG_ID, _link, true);
+              };
+            }
+          }
           // "Gérer l'organisation" permet de renommer/supprimer l'org — même raison que le
           // lien Drive ci-dessus, jamais montré à un non-propriétaire.
           document.getElementById("op-manage-link").style.display = "block";
