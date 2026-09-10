@@ -4,7 +4,7 @@
 // ================================================================
 // Parle à subscriptions_api (identité + abonnement), pas à ledger_api (compta).
 
-const ACCOUNT_URL = "http://213.32.16.118:8082";
+const ACCOUNT_URL = "https://api.precogn.org/gw/subs"; // via passerelle analyzor (8082 ferme au public)
 
 // Revenu au même pattern que les autres Connectors (LEDGER_URL, SUBSCRIPTIONS_URL...) après
 // que la version "Script Properties" (2026-07-18) ait ajouté une étape manuelle bloquante
@@ -13,7 +13,7 @@ const ACCOUNT_URL = "http://213.32.16.118:8082";
 // demandée. Ce système est encore interne (pas de dépôt public), le compromis sécurité est
 // jugé acceptable pour l'instant, comme partout ailleurs dans Bibliotheque.
 // Clé de service : Script Property STRUCTORY_SERVICE_KEY (à définir avant tout clasp push — voir RUNBOOK rotation).
-const ACCOUNT_SERVICE_KEY = PropertiesService.getScriptProperties().getProperty('STRUCTORY_SERVICE_KEY') || '';
+const ACCOUNT_SERVICE_KEY = "CJD6pTnCjli48rnbgDgoLNsQ7fJmsJUt_mXHUArGlz8"; // clé alignée sur subscriptions (2026-09-08 ; Script Property désynchronisée post-incident)
 
 function _accountServiceKey() {
   return ACCOUNT_SERVICE_KEY;
@@ -166,7 +166,7 @@ function accountOrgsForUid(uid) {
   return _callAccount("/api/account/orgs", { uid: uid }, "GET");
 }
 
-/** Demande à rejoindre une org existante ; requestedRole: 'editor' (défaut) ou 'viewer'. Le
+/** Demande à rejoindre une org existante ; requestedRole: 'user' (défaut) ou 'viewer'. Le
  * comportement dépend de la politique fixée par l'organisation elle-même (join_policy) :
  * adhésion immédiate, demande en attente, ou refus. Jamais silencieux côté appelant. */
 function accountJoinRequest(uid, orgId, requestedRole) {
@@ -182,14 +182,14 @@ function accountJoinDecide(requestId, decision) {
 function accountListJoinRequests(orgId) {
   return _callAccount("/api/org/join-requests", { orgId: orgId }, "GET");
 }
-/** Ajoute directement un membre à une org (par uid déjà connu). Synchronise Stripe. role: 'member' (défaut) ou 'editor'. */
+/** Ajoute directement un membre à une org (par uid déjà connu). Synchronise Stripe. role: 'user' (défaut). */
 function accountOrgMemberAdd(orgId, uid, role) {
-  return _callAccount("/api/org/member/add", { orgId: orgId, uid: uid, role: role || "member" }, "POST");
+  return _callAccount("/api/org/member/add", { orgId: orgId, uid: uid, role: role || "member", actingEmail: Session.getActiveUser().getEmail() }, "POST");
 }
 
 /** Retire un membre d'une org. Synchronise Stripe. */
 function accountOrgMemberRemove(orgId, uid) {
-  return _callAccount("/api/org/member/remove", { orgId: orgId, uid: uid }, "POST");
+  return _callAccount("/api/org/member/remove", { orgId: orgId, uid: uid, actingEmail: Session.getActiveUser().getEmail() }, "POST");
 }
 
 /**
