@@ -8,7 +8,7 @@
 // jamais appeler ledger_api directement : c'est l'Executor qui reste le gateway unique,
 // paramétré par organisation, pour tous les orgs (2026-07-21, retour de Stéphane).
 
-const EXECUTOR_URL = "http://213.32.16.118:8084";
+const EXECUTOR_URL = "https://exec.precogn.org";
 
 function _callExecutor(endpoint, payload, method) {
 

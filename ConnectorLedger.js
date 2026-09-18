@@ -3,7 +3,7 @@
 // Bibliothèque Générale PreCogn
 // ================================================================
 
-const LEDGER_URL = "http://213.32.16.118:8080";
+const LEDGER_URL = "https://api.precogn.org/gw/ledger"; // via passerelle analyzor (8080 ferme au public)
 
 /**
  * Fonction privée

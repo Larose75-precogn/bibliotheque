@@ -3,7 +3,7 @@
 // Bibliothèque Générale PreCogn
 // ================================================================
 
-const ANALYZOR_URL = "http://analyzor.precogn.org:8000";
+const ANALYZOR_URL = "https://api.precogn.org";
 /**
  * Fonction privée
  */
